@@ -101,7 +101,12 @@ public enum Family {
   /**
    * The reservoir sampling family of Union operations. (Not part of TSF.)
    */
-  RESERVOIR_UNION(12, "RESERVOIR_UNION", 1, 1);
+  RESERVOIR_UNION(12, "RESERVOIR_UNION", 1, 1),
+
+  /**
+   * The VarOpt family of sketches. (Not part of TSF.)
+   */
+  VAROPT(13, "VAROPT", 1, 4);
 
   private static final Map<Integer, Family> lookupID = new HashMap<Integer, Family>();
   private static final Map<String, Family> lookupFamName = new HashMap<String, Family>();

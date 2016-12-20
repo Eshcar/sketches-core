@@ -34,8 +34,8 @@ import com.yahoo.sketches.SketchesArgumentException;
  * floating point format. To ensure meaningful probabilities as the items seen count approaches
  * capacity, we intentionally use slightly fewer bits.</p>
  *
- * <p>An empty sampling sketch only requires 8 bytes. A non-empty sampling sketch requires 16
- * bytes of preamble.</p>
+ * <p>An empty reservoir sampling sketch only requires 8 bytes. A non-empty sampling sketch
+ * requires 16 bytes of preamble.</p>
  *
  * <pre>
  * Long || Start Byte Adr:
@@ -47,10 +47,10 @@ import com.yahoo.sketches.SketchesArgumentException;
  *  1   ||-----(empty)-----|-------------------Items Seen Count------------------------------|
  *  </pre>
  *
- * <p><strong>Union:</strong> The union has fewer internal parameters to track and uses a slightly
- * different preamble structure. The maximum reservoir size intentionally occupies the same byte
- * range as the reservoir size in the sketch preamble, allowing the same methods to be used for
- * reading and writing the values.</p>
+ * <p><strong>Union:</strong> The reservoir union has fewer internal parameters to track and uses
+ * a slightly different preamble structure. The maximum reservoir size intentionally occupies the
+ * same byte range as the reservoir size in the sketch preamble, allowing the same methods to be
+ * used for reading and writing the values.</p>
  *
  * <p>An empty union only requires 8 bytes. A non-empty union requires 8 bytes of preamble.</p>
  *
@@ -59,6 +59,29 @@ import com.yahoo.sketches.SketchesArgumentException;
  * Adr:
  *      ||    7   |    6   |    5   |    4   |    3   |    2   |    1   |     0              |
  *  0   ||---------Max Res. Size (K)---------|  Flags | FamID  | SerVer |   Preamble_Longs   |
+ * </pre>
+ *
+ * <p><string>VarOpt:</string> A VarOpt sketch has a more complex internal data structure and
+ * requires a larger preamble. Values serving a similar purpose in both reservoir and varopt sampling
+ * share the same byte ranges, allowing method re-use where practical.</p>
+ *
+ * <p>An empty varopt sample requires 8 bytes. A non-empty sketch requires 16 bytes of preamble
+ * for an under-full sample and otherwise 32 bytes of preamble.</p>
+ *
+ * <pre>
+ * Long || Start Byte Adr:
+ * Adr:
+ *      ||    7   |    6   |    5   |    4   |    3   |    2   |    1   |     0              |
+ *  0   ||--------Reservoir Size (K)---------|  Flags | FamID  | SerVer |   Preamble_Longs   |
+ *
+ *      ||   15   |   14   |   13   |   12   |   11   |   10   |    9   |     8              |
+ *  1   ||-----(empty)-----|-------------------Items Seen Count------------------------------|
+
+ *      ||   23   |   22   |   21   |   20   |   19   |   18   |   17   |    16              |
+ *  2   ||--------------(empty)--------------|-----------Item Count in H---------------------|
+
+ *      ||   31   |   30   |   29   |   28   |   27   |   26   |   25   |    24              |
+ *  3   ||--------------------------------Total Weight in R----------------------------------|
  *  </pre>
  *
  *  @author Jon Malkin
