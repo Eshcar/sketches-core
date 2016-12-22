@@ -41,7 +41,7 @@ public class VarOptItemsSketch<T> {
    */
   private static final ResizeFactor DEFAULT_RESIZE_FACTOR = ResizeFactor.X8;
 
-  private final int k_;      // max size of reservoir
+  private final int k_;                  // max size of reservoir
   private int currItemsAlloc_;           // currently allocated array size
   private final ResizeFactor rf_;        // resize factor
   private ArrayList<T> data_;            // stored sampled data
@@ -57,6 +57,7 @@ public class VarOptItemsSketch<T> {
   public static int case3Count = 0;
   public static int case4Count = 0;
   public static int case5Count = 0;
+  public static int nWarmup = 0;
   public static int nLight = 0;
   public static int nHeavyGeneral = 0;
   public static int nHeavySpecial = 0;
@@ -239,8 +240,8 @@ public class VarOptItemsSketch<T> {
   }
 
   /**
-   * Returns a copy of the items in the reservoir, or null if empty. The returned array length
-   * may be smaller than the reservoir capacity.
+   * Returns a copy of the items (no weights) in the reservoir, or null if empty. The returned
+   * array length may be smaller than the reservoir capacity.
    *
    * <p>In order to allocate an array of generic type T, uses the class of the first item in
    * the array. This method method may throw an <tt>ArrayAssignmentException</tt> if the
@@ -254,13 +255,14 @@ public class VarOptItemsSketch<T> {
       return null;
     }
 
-    final Class<?> clazz = data_.get(0).getClass();
-    return data_.toArray((T[]) Array.newInstance(clazz, 0));
+    final int validIndex = (h_ == 0 ? 1 : 0);
+    final Class<?> clazz = data_.get(validIndex).getClass();
+    return getSamples(clazz);
   }
 
   /**
-   * Returns a copy of the items in the reservoir as members of Class <em>clazz</em>, or null
-   * if empty. The returned array length may be smaller than the reservoir capacity.
+   * Returns a copy of the items (no weights) in the reservoir as members of Class <em>clazz</em>,
+   * or null if empty. The returned array length may be smaller than the reservoir capacity.
    *
    * <p>This method allocates an array of class <em>clazz</em>, which must either match or
    * extend T. This method should be used when objects in the array are all instances of T but
@@ -275,7 +277,15 @@ public class VarOptItemsSketch<T> {
       return null;
     }
 
-    return data_.toArray((T[]) Array.newInstance(clazz, 0));
+    // are 2 Array.asList(data_.subList()) copies better?
+    final T[] prunedList = (T[]) Array.newInstance(clazz, getNumSamples());
+    int i = 0;
+    for (T item : data_) {
+      if (item != null) {
+        prunedList[i++] = item;
+      }
+    }
+    return prunedList;
   }
 
   /**
@@ -301,6 +311,7 @@ public class VarOptItemsSketch<T> {
     sb.append("   Resize factor: ").append(rf_).append(LS);
     sb.append("### END SKETCH SUMMARY").append(LS);
 
+    /*
     if (h_ + r_ > 0) {
       int stop = getNumSamples();
       if (r_ > 0) { stop = k_ + 1; }
@@ -309,6 +320,7 @@ public class VarOptItemsSketch<T> {
                 .append(", ").append(weights_.get(i)).append(")").append(LS);
       }
     }
+    */
 
     return sb.toString();
   }
@@ -444,12 +456,17 @@ public class VarOptItemsSketch<T> {
   }
 
   private void updateWarmupPhase(final T item, final double wt) {
-    assert r_ == 0 && m_ == 0 && h_ < getK();
+    assert r_ == 0 && m_ == 0 && h_ < k_;
+
+    if (h_ >= currItemsAlloc_) {
+      growReservoir();
+    }
 
     // store items as they come in, until full
     data_.add(h_, item);
     weights_.add(h_, wt);
     ++h_;
+    ++nWarmup;
 
     // lazy heapification
     if (h_ > k_) {
@@ -720,6 +737,19 @@ public class VarOptItemsSketch<T> {
     weights_.set(dst, wt);
   }
 
+  /**
+   * Increases allocated sampling size by (adjusted) ResizeFactor and copies data from old
+   * sampling.
+   */
+  private void growReservoir() {
+    currItemsAlloc_ = SamplingUtil.getAdjustedSize(k_, currItemsAlloc_ << rf_.lg());
+    if (currItemsAlloc_ == k_) {
+      ++currItemsAlloc_;
+    }
+
+    data_.ensureCapacity(currItemsAlloc_);
+    weights_.ensureCapacity(currItemsAlloc_);
+  }
 
   public static void main(final String[] args) {
     for (int trial = 0; trial < 25000; ++trial) {
@@ -739,10 +769,10 @@ public class VarOptItemsSketch<T> {
             VarOptItemsSketch.case4Count,
             VarOptItemsSketch.case5Count);
 
-    System.out.printf("heaviness %d %d %d\n",
+    System.out.printf("heaviness %d %d %d %d\n",
+            VarOptItemsSketch.nWarmup,
             VarOptItemsSketch.nLight,
             VarOptItemsSketch.nHeavyGeneral,
             VarOptItemsSketch.nHeavySpecial);
   }
-
 }
