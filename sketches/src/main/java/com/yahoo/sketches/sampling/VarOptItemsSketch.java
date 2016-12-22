@@ -1,12 +1,30 @@
 package com.yahoo.sketches.sampling;
 
+import static com.yahoo.sketches.Util.LS;
+import static com.yahoo.sketches.sampling.PreambleUtil.EMPTY_FLAG_MASK;
+import static com.yahoo.sketches.sampling.PreambleUtil.SER_VER;
+import static com.yahoo.sketches.sampling.PreambleUtil.extractFamilyID;
+import static com.yahoo.sketches.sampling.PreambleUtil.extractFlags;
+import static com.yahoo.sketches.sampling.PreambleUtil.extractHRegionItemCount;
+import static com.yahoo.sketches.sampling.PreambleUtil.extractItemsSeenCount;
+import static com.yahoo.sketches.sampling.PreambleUtil.extractRRegionItemCount;
+import static com.yahoo.sketches.sampling.PreambleUtil.extractReservoirSize;
+import static com.yahoo.sketches.sampling.PreambleUtil.extractResizeFactor;
+import static com.yahoo.sketches.sampling.PreambleUtil.extractSerVer;
+import static com.yahoo.sketches.sampling.PreambleUtil.extractTotalRWeight;
+import static com.yahoo.sketches.sampling.PreambleUtil.getAndCheckPreLongs;
+
 import java.lang.reflect.Array;
 import java.util.ArrayList;
+import java.util.Arrays;
+
+import com.yahoo.memory.Memory;
+import com.yahoo.memory.MemoryRegion;
 
 import com.yahoo.sketches.ArrayOfItemsSerDe;
+import com.yahoo.sketches.Family;
 import com.yahoo.sketches.ResizeFactor;
 import com.yahoo.sketches.SketchesArgumentException;
-import com.yahoo.sketches.SketchesStateException;
 import com.yahoo.sketches.Util;
 
 /**
@@ -19,19 +37,12 @@ public class VarOptItemsSketch<T> {
   private static final int MIN_LG_ARR_ITEMS = 4;
 
   /**
-   * Using 48 bits to capture number of items seen, so sketch cannot process more after this
-   * many items capacity
-   */
-  private static final long MAX_ITEMS_SEEN = 0xFFFFFFFFFFFFL;
-
-  /**
    * Default sampling size multiple when reallocating storage: 8
    */
   private static final ResizeFactor DEFAULT_RESIZE_FACTOR = ResizeFactor.X8;
 
   private final int k_;      // max size of reservoir
   private int currItemsAlloc_;           // currently allocated array size
-  private long itemsSeen_;               // number of items presented to sketch
   private final ResizeFactor rf_;        // resize factor
   private ArrayList<T> data_;            // stored sampled data
   private ArrayList<Double> weights_;    // weights for sampled data
@@ -41,6 +52,14 @@ public class VarOptItemsSketch<T> {
   private int r_;                        // number of items in reservoir-like area
   private double totalWtR_;              // total weight of items in reservoir-like area
 
+  public static int case1Count = 0;
+  public static int case2Count = 0;
+  public static int case3Count = 0;
+  public static int case4Count = 0;
+  public static int case5Count = 0;
+  public static int nLight = 0;
+  public static int nHeavyGeneral = 0;
+  public static int nHeavySpecial = 0;
 
   private VarOptItemsSketch(final int k, final ResizeFactor rf) {
     // required due to a theorem about lightness during merging
@@ -51,7 +70,6 @@ public class VarOptItemsSketch<T> {
     k_ = k;
     rf_ = rf;
 
-    itemsSeen_ = 0;
     h_ = 0;
     m_ = 0;
     r_ = 0;
@@ -75,6 +93,98 @@ public class VarOptItemsSketch<T> {
   }
 
   /**
+   * Returns a sketch instance of this class from the given srcMem,
+   * which must be a Memory representation of this sketch class.
+   *
+   * @param <T>    The type of item this sketch contains
+   * @param srcMem a Memory representation of a sketch of this class.
+   *               <a href="{@docRoot}/resources/dictionary.html#mem">See Memory</a>
+   * @param serDe  An instance of ArrayOfItemsSerDe
+   * @return a sketch instance of this class
+   */
+  public static <T> VarOptItemsSketch<T> getInstance(final Memory srcMem,
+                                                     final ArrayOfItemsSerDe<T> serDe) {
+    return null;
+    /*
+    final Object memObj = srcMem.array(); //may be null
+    final long memAddr = srcMem.getCumulativeOffset(0L);
+
+    final int numPreLongs = getAndCheckPreLongs(srcMem);
+    long pre0 = srcMem.getLong(0);
+    final ResizeFactor rf = ResizeFactor.getRF(extractResizeFactor(pre0));
+    final int serVer = extractSerVer(pre0);
+    final int familyId = extractFamilyID(pre0);
+    final boolean isEmpty = (extractFlags(pre0) & EMPTY_FLAG_MASK) != 0;
+
+    // Check values
+    final boolean preLongsEqMin = (numPreLongs == Family.VAROPT.getMinPreLongs());
+    final boolean preLongsEqMax = (numPreLongs == Family.VAROPT.getMaxPreLongs());
+
+    if (numPreLongs < Family.VAROPT.getMinPreLongs()
+            || numPreLongs > Family.VAROPT.getMaxPreLongs()) {
+      throw new SketchesArgumentException(
+              "Possible corruption: Must have between " + Family.VAROPT.getMinPreLongs()
+                      + " and " + Family.VAROPT.getMaxPreLongs() + " preLongs;"
+                      + " Found: " + numPreLongs);
+    }
+    if (serVer != SER_VER) {
+        throw new SketchesArgumentException(
+                "Possible Corruption: Ser Ver must be " + SER_VER + ": " + serVer);
+    }
+    final int reqFamilyId = Family.VAROPT.getID();
+    if (familyId != reqFamilyId) {
+      throw new SketchesArgumentException(
+              "Possible Corruption: FamilyID must be " + reqFamilyId + ": " + familyId);
+    }
+
+    final int k = extractReservoirSize(pre0);
+
+    if (isEmpty) {
+      return new VarOptItemsSketch<>(k, rf);
+    }
+
+    // get rest of preamble
+    final int hCount = extractHRegionItemCount(memObj, memAddr);
+    final int rCount = extractRRegionItemCount(memObj, memAddr);
+
+    double totalRWeight = 0.0;
+    if (numPreLongs == 3) {
+      if (rCount > 0) {
+        totalRWeight = extractTotalRWeight(memObj, memAddr);
+      } else {
+        throw new SketchesArgumentException(
+                "Possible Corruption: 3 preLongs but no items in R region");
+      }
+    }
+
+    final int preLongBytes = numPreLongs << 3;
+    int allocatedItems = k; // default to full reservoir
+
+    if (rCount == 0 && hCount < k) {
+      // under-full so determine size to allocate, using ceilingLog2(hCount) as minimum
+      // casts to int are safe since under-full
+      final int ceilingLgK = Util.toLog2(Util.ceilingPowerOf2(k), "getInstance");
+      final int minLgSize = Util.toLog2(Util.ceilingPowerOf2((int) hCount), "getInstance");
+      final int initialLgSize = SamplingUtil.startingSubMultiple(ceilingLgK, rf.lg(),
+              Math.max(minLgSize, MIN_LG_ARR_ITEMS));
+
+      allocatedItems = SamplingUtil.getAdjustedSize(k, 1 << initialLgSize);
+    }
+
+    final int itemsToRead = (int) Math.min(k, itemsSeen);
+    final T[] data = serDe.deserializeFromMemory(
+            new MemoryRegion(srcMem, preLongBytes, srcMem.getCapacity() - preLongBytes), itemsToRead);
+    final ArrayList<T> dataList = new ArrayList<>(Arrays.asList(data));
+
+    final ReservoirItemsSketch<T> ris = new ReservoirItemsSketch<>(dataList, itemsSeen, rf, k);
+    ris.data_.ensureCapacity(allocatedItems);
+    ris.currItemsAlloc_ = allocatedItems;
+
+    return ris;
+    */
+  }
+
+  /**
    * Returns the sketch's value of <i>k</i>, the maximum number of samples stored in the
    * reservoir. The current number of items in the sketch may be lower.
    *
@@ -85,39 +195,27 @@ public class VarOptItemsSketch<T> {
   }
 
   /**
-   * Returns the number of items processed from the input stream
-   *
-   * @return n, the number of stream items the sketch has seen
-   */
-  public long getN() {
-    return itemsSeen_;
-  }
-
-  /**
    * Returns the current number of items in the reservoir, which may be smaller than the
    * reservoir capacity.
    *
    * @return the number of items currently in the reservoir
    */
   public int getNumSamples() {
-    return (int) Math.min(k_, itemsSeen_);
+    return Math.min(k_, h_ + r_);
   }
 
+  /* The word "pseudo" refers to the fact that the comparisons
+     are being made against the OLD value of tau, whereas true lightness
+     or heaviness during this sampling event depends on the NEW value of tau
+     which has yet to be determined */
   /**
    * Randomly decide whether or not to include an item in the sample set.
    *
    * @param item an item of the set being sampled from
    * @param weight a strictly positive weight associated with the item
    */
-  /* The word "pseudo" refers to the fact that the comparisons
-     are being made against the OLD value of tau, whereas true lightness
-     or heaviness during this sampling event depends on the NEW value of tau
-     which has yet to be determined */
   public void update(final T item, final double weight) {
-    if (itemsSeen_ == MAX_ITEMS_SEEN) {
-      throw new SketchesStateException("Sketch has exceeded capacity for total items seen: "
-              + MAX_ITEMS_SEEN);
-    } else if (weight <= 0.0) {
+    if (weight <= 0.0) {
       throw new SketchesArgumentException("Item weights must be strictly positive: "
               + weight);
     }
@@ -152,7 +250,7 @@ public class VarOptItemsSketch<T> {
    */
   @SuppressWarnings("unchecked")
   public T[] getSamples() {
-    if (itemsSeen_ == 0) {
+    if (r_ == 0 && h_ == 0) {
       return null;
     }
 
@@ -173,7 +271,7 @@ public class VarOptItemsSketch<T> {
    */
   @SuppressWarnings("unchecked")
   public T[] getSamples(final Class<?> clazz) {
-    if (itemsSeen_ == 0) {
+    if (r_ == 0 && h_ == 0) {
       return null;
     }
 
@@ -187,9 +285,8 @@ public class VarOptItemsSketch<T> {
    */
   @Override
   public String toString() {
-    throw new RuntimeException("Write me!");
+    //throw new RuntimeException("Write me!");
 
-    /*
     final StringBuilder sb = new StringBuilder();
 
     final String thisSimpleName = this.getClass().getSimpleName();
@@ -197,13 +294,23 @@ public class VarOptItemsSketch<T> {
     sb.append(LS);
     sb.append("### ").append(thisSimpleName).append(" SUMMARY: ").append(LS);
     sb.append("   k            : ").append(k_).append(LS);
-    sb.append("   n            : ").append(itemsSeen_).append(LS);
+    sb.append("   h            : ").append(h_).append(LS);
+    sb.append("   r            : ").append(r_).append(LS);
+    sb.append("   weight_r     : ").append(totalWtR_).append(LS);
     sb.append("   Current size : ").append(currItemsAlloc_).append(LS);
     sb.append("   Resize factor: ").append(rf_).append(LS);
     sb.append("### END SKETCH SUMMARY").append(LS);
 
+    if (h_ + r_ > 0) {
+      int stop = getNumSamples();
+      if (r_ > 0) { stop = k_ + 1; }
+      for (int i = 0; i < stop; ++i) {
+        sb.append("\t").append(i).append(": (").append(data_.get(i))
+                .append(", ").append(weights_.get(i)).append(")").append(LS);
+      }
+    }
+
     return sb.toString();
-    */
   }
 
   /**
@@ -213,7 +320,7 @@ public class VarOptItemsSketch<T> {
    * @return a byte array representation of this sketch
    */
   public byte[] toByteArray(final ArrayOfItemsSerDe<T> serDe) {
-    if (itemsSeen_ == 0) {
+    if (r_ == 0 && h_ == 0) {
       // null class is ok since empty -- no need to call serDe
       return toByteArray(serDe, null);
     } else {
@@ -235,14 +342,14 @@ public class VarOptItemsSketch<T> {
 
     /*
     final int preLongs, outBytes;
-    final boolean empty = itemsSeen_ == 0;
+    final boolean empty = r_ == 0 && h_ == 0;
     byte[] bytes = null; // for serialized data from serDe
 
     if (empty) {
       preLongs = 1;
       outBytes = 8;
     } else {
-      preLongs = Family.RESERVOIR.getMaxPreLongs();
+      preLongs = Family.VAROPT.getMaxPreLongs();
       bytes = serDe.serializeToByteArray(getSamples(clazz));
       outBytes = (preLongs << 3) + bytes.length;
     }
@@ -254,7 +361,7 @@ public class VarOptItemsSketch<T> {
     pre0 = PreambleUtil.insertPreLongs(preLongs, pre0);                  // Byte 0
     pre0 = PreambleUtil.insertResizeFactor(rf_.lg(), pre0);
     pre0 = PreambleUtil.insertSerVer(SER_VER, pre0);                     // Byte 1
-    pre0 = PreambleUtil.insertFamilyID(Family.RESERVOIR.getID(), pre0);  // Byte 2
+    pre0 = PreambleUtil.insertFamilyID(Family.VAROPT.getID(), pre0);  // Byte 2
     pre0 = (empty)
             ? PreambleUtil.insertFlags(EMPTY_FLAG_MASK, pre0)
             : PreambleUtil.insertFlags(0, pre0);                         // Byte 3
@@ -264,6 +371,8 @@ public class VarOptItemsSketch<T> {
       mem.putLong(0, pre0);
     } else {
       // second preLong, only if non-empty
+
+      PreambleUtil.insertHRegionItemCount();
       long pre1 = 0L;
       pre1 = PreambleUtil.insertItemsSeenCount(itemsSeen_, pre1);
 
@@ -280,12 +389,13 @@ public class VarOptItemsSketch<T> {
   }
 
   /* In the "pseudo-light" case the new item has weight <= old_tau, so
-     would appear to the right of the R guys in a hypothetical reverse-sorted
+     would appear to the right of the R items in a hypothetical reverse-sorted
      list. It is easy to prove that it is light enough to be part of this
      round's downsampling */
   private void updatePseudoLight(final T item, final double weight) {
     assert r_ >= 1;
     assert r_ + h_ == k_;
+    ++nLight;
 
     final int mSlot = h_; // index of the gap, which becomes the M region
     data_.set(mSlot, item);
@@ -305,8 +415,9 @@ public class VarOptItemsSketch<T> {
      in long streams unless (max wt) / (min wt) > o(exp(N)) */
   private void updatePseudoHeavyGeneral(final T item, final double weight) {
     assert m_ == 0;
-    assert r_ >= 2;;
+    assert r_ >= 2;
     assert r_ + h_ == k_;
+    ++nHeavyGeneral;
 
     // put into H, although may come back out momentarily
     push(item, weight);
@@ -314,13 +425,14 @@ public class VarOptItemsSketch<T> {
     growCandidateSet(totalWtR_, r_);
   }
 
-  /* The analysis of this case is similar to that of the general pseudo heavy case.
-  The one small technical difference is that since R < 2, we must grab an M guy
-  to have a valid starting point for continue_by_growing_candidate_set () */
+  /* The analysis of this case is similar to that of the general pseudo heavy
+     case. The one small technical difference is that since R < 2, we must grab an
+     M item to have a valid starting point for continue_by_growing_candidate_set () */
   private void updatePseudoHeavyREq1(final T item, final double weight) {
     assert m_ == 0;
     assert r_ == 1;
     assert r_ + h_ == k_;
+    ++nHeavySpecial;
 
     push(item, weight);  // new item into H
     popMinToMRegion();   // pop lightest back into M
@@ -480,8 +592,8 @@ public class VarOptItemsSketch<T> {
     assert numCands == m_ + r_; // essential
     assert m_ == 0 || m_ == 1;
 
-    System.out.printf("Before growing: %d cands weighing %.6f, provisional new tau is %.6f\n",
-            numCands, wtCands, wtCands / (numCands - 1));
+    //System.out.printf("Before growing: %d cands weighing %.6f, provisional new tau is %.6f\n",
+    //        numCands, wtCands, wtCands / (numCands - 1));
 
     while (h_ > 0) {
       final double nextWt = peekMin();
@@ -498,6 +610,10 @@ public class VarOptItemsSketch<T> {
         break;
       }
     }
+
+    //System.out.printf("After growing: %d cands weighing %.6f, actual new tau is %.6f\n",
+    //        numCands, wtCands, wtCands / (numCands - 1));
+
 
     downsampleCandidateSet(wtCands, numCands);
   }
@@ -517,15 +633,18 @@ public class VarOptItemsSketch<T> {
 
     if (m_ == 0) {
       // this happens if we insert a really heavy item
+      ++case1Count;
       return pickRandomSlotInR();
     } else if (m_ == 1) {
       // check if we keep the item in M or pick one from R
       // p(keep) = (numCand - 1) * wt_M / wt_newtotal
       // TODO: is wt_newtotal correct? seems like wt_cand in code
       final double wtMCand = weights_.get(h_); // slot of item in M is h_
-      if (wtCand * SamplingUtil.rand.nextDouble() < (numCand - 1) * wtMCand) {
+      if (wtCand * SamplingUtil.nextDoubleExcludeZero() < (numCand - 1) * wtMCand) {
+        ++case2Count;
         return pickRandomSlotInR(); // keep item in M
       } else {
+        ++case3Count;
         return h_; // index of item in M
       }
     } else {
@@ -533,13 +652,14 @@ public class VarOptItemsSketch<T> {
       final int deleteSlot = chooseWeightedDeleteSlot(wtCand, numCand);
       final int firstRSlot = h_ + m_;
       if (deleteSlot == firstRSlot) {
+        ++case4Count;
         return pickRandomSlotInR();
       } else {
+        ++case5Count;
         return deleteSlot;
       }
     }
   }
-
 
   private int chooseWeightedDeleteSlot(final double wtCand, final int numCand) {
     assert m_ >= 1;
@@ -549,9 +669,9 @@ public class VarOptItemsSketch<T> {
     final int numToKeep = numCand - 1;
 
     double leftSubtotal = 0.0;
-    double rightSubtotal = -1.0 * wtCand * SamplingUtil.rand.nextDouble();
+    double rightSubtotal = -1.0 * wtCand * SamplingUtil.nextDoubleExcludeZero();
 
-    for (int i = m_; i <= finalM; ++i) {
+    for (int i = offset; i <= finalM; ++i) {
       leftSubtotal += numToKeep * weights_.get(i);
       rightSubtotal += wtCand;
 
@@ -575,7 +695,7 @@ public class VarOptItemsSketch<T> {
     assert deleteSlot <= k_;
 
     // overwrite weights for items from M moving into R, to make bugs more obvious
-    final int stopIdx = leftmostCandSlot + m_ - 1;
+    final int stopIdx = leftmostCandSlot + m_;
     for (int j = leftmostCandSlot; j < stopIdx; ++j) {
       weights_.set(j, -1.0);
     }
@@ -598,6 +718,31 @@ public class VarOptItemsSketch<T> {
     final Double wt = weights_.get(src);
     weights_.set(src, weights_.get(dst));
     weights_.set(dst, wt);
+  }
+
+
+  public static void main(final String[] args) {
+    for (int trial = 0; trial < 25000; ++trial) {
+      final VarOptItemsSketch<Integer> sketch = VarOptItemsSketch.getInstance(1000);
+
+      for (int i = 1; i <= 2000; ++i) {
+        final int j = 1000001 - i;
+        sketch.update(i, (float) i);
+        sketch.update(j, (float) j);
+      }
+    }
+
+    System.out.printf("cases %d %d %d %d %d\n",
+            VarOptItemsSketch.case1Count,
+            VarOptItemsSketch.case2Count,
+            VarOptItemsSketch.case3Count,
+            VarOptItemsSketch.case4Count,
+            VarOptItemsSketch.case5Count);
+
+    System.out.printf("heaviness %d %d %d\n",
+            VarOptItemsSketch.nLight,
+            VarOptItemsSketch.nHeavyGeneral,
+            VarOptItemsSketch.nHeavySpecial);
   }
 
 }

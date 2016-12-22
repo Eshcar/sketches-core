@@ -106,7 +106,7 @@ public enum Family {
   /**
    * The VarOpt family of sketches. (Not part of TSF.)
    */
-  VAROPT(13, "VAROPT", 1, 4);
+  VAROPT(13, "VAROPT", 1, 3);
 
   private static final Map<Integer, Family> lookupID = new HashMap<Integer, Family>();
   private static final Map<String, Family> lookupFamName = new HashMap<String, Family>();
