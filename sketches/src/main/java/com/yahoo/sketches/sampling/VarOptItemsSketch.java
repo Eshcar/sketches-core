@@ -371,7 +371,7 @@ public class VarOptItemsSketch<T> {
     // build first preLong
     long pre0 = 0L;
     pre0 = PreambleUtil.insertPreLongs(preLongs, pre0);                  // Byte 0
-    pre0 = PreambleUtil.insertResizeFactor(rf_.lg(), pre0);
+    pre0 = PreambleUtil.insertLgResizeFactor(rf_.lg(), pre0);
     pre0 = PreambleUtil.insertSerVer(SER_VER, pre0);                     // Byte 1
     pre0 = PreambleUtil.insertFamilyID(Family.VAROPT.getID(), pre0);  // Byte 2
     pre0 = (empty)
