@@ -3,10 +3,10 @@ package com.yahoo.sketches.sampling;
 import static com.yahoo.sketches.Util.LS;
 import static com.yahoo.sketches.sampling.PreambleUtil.EMPTY_FLAG_MASK;
 import static com.yahoo.sketches.sampling.PreambleUtil.SER_VER;
+import static com.yahoo.sketches.sampling.PreambleUtil.TOTAL_WEIGHT_R_DOUBLE;
 import static com.yahoo.sketches.sampling.PreambleUtil.extractFamilyID;
 import static com.yahoo.sketches.sampling.PreambleUtil.extractFlags;
 import static com.yahoo.sketches.sampling.PreambleUtil.extractHRegionItemCount;
-import static com.yahoo.sketches.sampling.PreambleUtil.extractItemsSeenCount;
 import static com.yahoo.sketches.sampling.PreambleUtil.extractRRegionItemCount;
 import static com.yahoo.sketches.sampling.PreambleUtil.extractReservoirSize;
 import static com.yahoo.sketches.sampling.PreambleUtil.extractResizeFactor;
@@ -20,12 +20,17 @@ import java.util.Arrays;
 
 import com.yahoo.memory.Memory;
 import com.yahoo.memory.MemoryRegion;
+import com.yahoo.memory.NativeMemory;
 
+import com.yahoo.sketches.ArrayOfDoublesSerDe;
 import com.yahoo.sketches.ArrayOfItemsSerDe;
+import com.yahoo.sketches.ArrayOfLongsSerDe;
+import com.yahoo.sketches.ArrayOfNumbersSerDe;
 import com.yahoo.sketches.Family;
 import com.yahoo.sketches.ResizeFactor;
 import com.yahoo.sketches.SketchesArgumentException;
 import com.yahoo.sketches.Util;
+import com.yahoo.sketches.tuple.DoubleSummary;
 
 /**
  * @author Jon Malkin
@@ -89,6 +94,44 @@ public class VarOptItemsSketch<T> {
     weights_ = new ArrayList<>(currItemsAlloc_);
   }
 
+  private VarOptItemsSketch(final ArrayList<T> dataList,
+                            final ArrayList<Double> weightList,
+                            final int k,
+                            final ResizeFactor rf,
+                            final int hCount,
+                            final int rCount,
+                            final double totalWtR) {
+    if (dataList == null) {
+      throw new SketchesArgumentException("Instantiating sketch with null reservoir");
+    }
+    if (k < 2) {
+      throw new SketchesArgumentException("Cannot instantiate sketch with reservoir size less than 2");
+    }
+    if (k + 1 < dataList.size()) {
+      throw new SketchesArgumentException("Instantiating sketch with max size less than array length: "
+              + k + " max size, array of length " + dataList.size());
+    }
+    final int numItems = hCount + rCount;
+    if ((numItems == k && dataList.size() < k)
+            || (numItems < k && dataList.size() < numItems)) {
+      throw new SketchesArgumentException("Instantiating sketch with too few samples. Items seen: "
+              + numItems + ", max reservoir size: " + k
+              + ", data array length: " + dataList.size());
+    }
+
+    // Should we compute target current allocation to validate?
+    k_ = k;
+    h_ = hCount;
+    r_ = rCount;
+    m_ = 0;
+    totalWtR_ = totalWtR;
+    currItemsAlloc_ = dataList.size();
+    rf_ = rf;
+    data_ = dataList;
+    weights_ = weightList;
+
+  }
+
   public static <T> VarOptItemsSketch<T> getInstance(final int k) {
     return new VarOptItemsSketch<>(k, DEFAULT_RESIZE_FACTOR);
   }
@@ -105,22 +148,16 @@ public class VarOptItemsSketch<T> {
    */
   public static <T> VarOptItemsSketch<T> getInstance(final Memory srcMem,
                                                      final ArrayOfItemsSerDe<T> serDe) {
-    return null;
-    /*
-    final Object memObj = srcMem.array(); //may be null
+    final Object memObj = srcMem.array(); // may be null
     final long memAddr = srcMem.getCumulativeOffset(0L);
 
     final int numPreLongs = getAndCheckPreLongs(srcMem);
-    long pre0 = srcMem.getLong(0);
-    final ResizeFactor rf = ResizeFactor.getRF(extractResizeFactor(pre0));
-    final int serVer = extractSerVer(pre0);
-    final int familyId = extractFamilyID(pre0);
-    final boolean isEmpty = (extractFlags(pre0) & EMPTY_FLAG_MASK) != 0;
+    final ResizeFactor rf = ResizeFactor.getRF(extractResizeFactor(memObj, memAddr));
+    final int serVer = extractSerVer(memObj, memAddr);
+    final int familyId = extractFamilyID(memObj, memAddr);
+    final boolean isEmpty = (extractFlags(memObj, memAddr) & EMPTY_FLAG_MASK) != 0;
 
     // Check values
-    final boolean preLongsEqMin = (numPreLongs == Family.VAROPT.getMinPreLongs());
-    final boolean preLongsEqMax = (numPreLongs == Family.VAROPT.getMaxPreLongs());
-
     if (numPreLongs < Family.VAROPT.getMinPreLongs()
             || numPreLongs > Family.VAROPT.getMaxPreLongs()) {
       throw new SketchesArgumentException(
@@ -138,8 +175,9 @@ public class VarOptItemsSketch<T> {
               "Possible Corruption: FamilyID must be " + reqFamilyId + ": " + familyId);
     }
 
-    final int k = extractReservoirSize(pre0);
+    final int k = extractReservoirSize(memObj, memAddr);
 
+    // TODO: ensure isEmpty -> preLongs = 1?
     if (isEmpty) {
       return new VarOptItemsSketch<>(k, rf);
     }
@@ -165,24 +203,41 @@ public class VarOptItemsSketch<T> {
       // under-full so determine size to allocate, using ceilingLog2(hCount) as minimum
       // casts to int are safe since under-full
       final int ceilingLgK = Util.toLog2(Util.ceilingPowerOf2(k), "getInstance");
-      final int minLgSize = Util.toLog2(Util.ceilingPowerOf2((int) hCount), "getInstance");
+      final int minLgSize = Util.toLog2(Util.ceilingPowerOf2(hCount), "getInstance");
       final int initialLgSize = SamplingUtil.startingSubMultiple(ceilingLgK, rf.lg(),
               Math.max(minLgSize, MIN_LG_ARR_ITEMS));
 
       allocatedItems = SamplingUtil.getAdjustedSize(k, 1 << initialLgSize);
+    } else {
+      ++allocatedItems; // k + 1
     }
 
-    final int itemsToRead = (int) Math.min(k, itemsSeen);
+    final int totalItems = hCount + rCount;
+
+    // Read hCount weightList, but need full-sized ArrayList
+    final ArrayList<Double> weightList = new ArrayList<>(allocatedItems);
+    final double[] wts = new double[allocatedItems];
+    final long weightOffsetBytes = TOTAL_WEIGHT_R_DOUBLE + (rCount > 0 ? Double.BYTES : 0);
+    srcMem.getDoubleArray(weightOffsetBytes, wts, 0, hCount);
+    // TODO: find a better solution
+    int i = 0;
+    for (; i < hCount; ++i) {
+      weightList.add(wts[i]);
+    }
+    for (; i < allocatedItems; ++i) {
+      weightList.add(-1.0);
+    }
+
+    final long offsetBytes = preLongBytes + (hCount * Double.BYTES);
     final T[] data = serDe.deserializeFromMemory(
-            new MemoryRegion(srcMem, preLongBytes, srcMem.getCapacity() - preLongBytes), itemsToRead);
-    final ArrayList<T> dataList = new ArrayList<>(Arrays.asList(data));
+            new MemoryRegion(srcMem, offsetBytes, srcMem.getCapacity() - offsetBytes), totalItems);
+    // TODO: find a better solution
+    final ArrayList<T> dataList = new ArrayList<>(allocatedItems);
+    dataList.addAll(Arrays.asList(data).subList(0, hCount));
+    dataList.add(null);
+    dataList.addAll(Arrays.asList(data).subList(hCount, totalItems));
 
-    final ReservoirItemsSketch<T> ris = new ReservoirItemsSketch<>(dataList, itemsSeen, rf, k);
-    ris.data_.ensureCapacity(allocatedItems);
-    ris.currItemsAlloc_ = allocatedItems;
-
-    return ris;
-    */
+    return new VarOptItemsSketch<>(dataList, weightList, k, rf, hCount, rCount, totalRWeight);
   }
 
   /**
@@ -311,7 +366,6 @@ public class VarOptItemsSketch<T> {
     sb.append("   Resize factor: ").append(rf_).append(LS);
     sb.append("### END SKETCH SUMMARY").append(LS);
 
-    /*
     if (h_ + r_ > 0) {
       int stop = getNumSamples();
       if (r_ > 0) { stop = k_ + 1; }
@@ -320,7 +374,6 @@ public class VarOptItemsSketch<T> {
                 .append(", ").append(weights_.get(i)).append(")").append(LS);
       }
     }
-    */
 
     return sb.toString();
   }
@@ -331,12 +384,14 @@ public class VarOptItemsSketch<T> {
    * @param serDe An instance of ArrayOfItemsSerDe
    * @return a byte array representation of this sketch
    */
-  public byte[] toByteArray(final ArrayOfItemsSerDe<T> serDe) {
+  public byte[] toByteArray(final ArrayOfItemsSerDe<? super T> serDe) {
     if (r_ == 0 && h_ == 0) {
       // null class is ok since empty -- no need to call serDe
       return toByteArray(serDe, null);
     } else {
-      return toByteArray(serDe, data_.get(0).getClass());
+      final int validIndex = (h_ == 0 ? 1 : 0);
+      final Class<?> clazz = data_.get(validIndex).getClass();
+      return toByteArray(serDe, clazz);
     }
   }
 
@@ -345,14 +400,11 @@ public class VarOptItemsSketch<T> {
    * specified class for serialization to allow for polymorphic types.
    *
    * @param serDe An instance of ArrayOfItemsSerDe
-   * @param clazz Teh class represented by &lt;T&gt;
+   * @param clazz The class represented by &lt;T&gt;
    * @return a byte array representation of this sketch
    */
   @SuppressWarnings("null") // bytes will be null only if empty == true
-  public byte[] toByteArray(final ArrayOfItemsSerDe<T> serDe, final Class<?> clazz) {
-    throw new RuntimeException("Write me!");
-
-    /*
+  public byte[] toByteArray(final ArrayOfItemsSerDe<? super T> serDe, final Class<?> clazz) {
     final int preLongs, outBytes;
     final boolean empty = r_ == 0 && h_ == 0;
     byte[] bytes = null; // for serialized data from serDe
@@ -361,43 +413,48 @@ public class VarOptItemsSketch<T> {
       preLongs = 1;
       outBytes = 8;
     } else {
-      preLongs = Family.VAROPT.getMaxPreLongs();
+      preLongs = (r_ == 0 ? 2 : Family.VAROPT.getMaxPreLongs());
       bytes = serDe.serializeToByteArray(getSamples(clazz));
-      outBytes = (preLongs << 3) + bytes.length;
+      outBytes = (preLongs << 3) + (h_ * Double.BYTES) + bytes.length;
     }
     final byte[] outArr = new byte[outBytes];
     final Memory mem = new NativeMemory(outArr);
 
+    final Object memObj = mem.array(); // may be null
+    final long memAddr = mem.getCumulativeOffset(0L);
+
     // build first preLong
-    long pre0 = 0L;
-    pre0 = PreambleUtil.insertPreLongs(preLongs, pre0);                  // Byte 0
-    pre0 = PreambleUtil.insertLgResizeFactor(rf_.lg(), pre0);
-    pre0 = PreambleUtil.insertSerVer(SER_VER, pre0);                     // Byte 1
-    pre0 = PreambleUtil.insertFamilyID(Family.VAROPT.getID(), pre0);  // Byte 2
-    pre0 = (empty)
-            ? PreambleUtil.insertFlags(EMPTY_FLAG_MASK, pre0)
-            : PreambleUtil.insertFlags(0, pre0);                         // Byte 3
-    pre0 = PreambleUtil.insertReservoirSize(k_, pre0);       // Bytes 4-7
-
+    PreambleUtil.insertPreLongs(memObj, memAddr, preLongs);               // Byte 0
+    PreambleUtil.insertLgResizeFactor(memObj, memAddr, rf_.lg());
+    PreambleUtil.insertSerVer(memObj, memAddr, SER_VER);                  // Byte 1
+    PreambleUtil.insertFamilyID(memObj, memAddr, Family.VAROPT.getID());  // Byte 2
     if (empty) {
-      mem.putLong(0, pre0);
+      PreambleUtil.insertFlags(memObj, memAddr, EMPTY_FLAG_MASK);         // Byte 3
     } else {
-      // second preLong, only if non-empty
+      PreambleUtil.insertFlags(memObj, memAddr, 0);
+    }
+    PreambleUtil.insertReservoirSize(memObj, memAddr, k_);                // Bytes 4-7
 
-      PreambleUtil.insertHRegionItemCount();
-      long pre1 = 0L;
-      pre1 = PreambleUtil.insertItemsSeenCount(itemsSeen_, pre1);
+    if (!empty) {
+      PreambleUtil.insertHRegionItemCount(memObj, memAddr, h_);
+      PreambleUtil.insertRRegionItemCount(memObj, memAddr, r_);
+      if (r_ > 0) {
+        PreambleUtil.insertTotalRWeight(memObj, memAddr, totalWtR_);
+      }
 
-      final long[] preArr = new long[preLongs];
-      preArr[0] = pre0;
-      preArr[1] = pre1;
-      mem.putLongArray(0, preArr, 0, preLongs);
-      final int preBytes = preLongs << 3;
-      mem.putByteArray(preBytes, bytes, 0, bytes.length);
+      // write the first h_ weights
+      //final int preBytes = preLongs << 3;
+      int offset = preLongs << 3;
+      for (int i = 0; i < h_; ++i) {
+        mem.putDouble(offset, weights_.get(i));
+        offset += Double.BYTES;
+      }
+
+      // write the data items, using offset from earlier
+      mem.putByteArray(offset, bytes, 0, bytes.length);
     }
 
     return outArr;
-    */
   }
 
   /* In the "pseudo-light" case the new item has weight <= old_tau, so
@@ -751,7 +808,22 @@ public class VarOptItemsSketch<T> {
     weights_.ensureCapacity(currItemsAlloc_);
   }
 
+  static String printBytesAsLongs(final byte[] byteArr) {
+    final StringBuilder sb = new StringBuilder();
+    for (int i = 0; i < byteArr.length; i += 8) {
+      for (int j = i + 7; j >= i; --j) {
+        final String str = (j < byteArr.length ? Integer.toHexString(byteArr[j] & 0XFF) : "00");
+        sb.append(Util.zeroPad(str, 2));
+      }
+      sb.append(Util.LS);
+
+    }
+
+    return sb.toString();
+  }
+
   public static void main(final String[] args) {
+    /*
     for (int trial = 0; trial < 25000; ++trial) {
       final VarOptItemsSketch<Integer> sketch = VarOptItemsSketch.getInstance(1000);
 
@@ -761,7 +833,33 @@ public class VarOptItemsSketch<T> {
         sketch.update(j, (float) j);
       }
     }
+    */
 
+    final VarOptItemsSketch<Long> sketch = VarOptItemsSketch.getInstance(5);
+    for (long i = 1; i <= 5; ++i) {
+      sketch.update(i, 1.0);
+      System.out.println(sketch);
+      //final String s = printBytesAsLongs(sketch.toByteArray(new ArrayOfNumbersSerDe(), Number.class));
+      final String s = printBytesAsLongs(sketch.toByteArray(new ArrayOfLongsSerDe()));
+      System.out.println(s);
+    }
+
+    sketch.update(10L, Math.sqrt(70.0));
+    sketch.update(7L, Math.sqrt(1.0));
+
+    System.out.println(sketch);
+    byte[] bytes = sketch.toByteArray(new ArrayOfLongsSerDe());
+    String s = printBytesAsLongs(bytes);
+    //System.out.println(s);
+
+    final Memory mem = new NativeMemory(bytes);
+    final VarOptItemsSketch<Long> rebuilt = VarOptItemsSketch.getInstance(mem, new ArrayOfLongsSerDe());
+    System.out.println(rebuilt);
+    bytes = rebuilt.toByteArray(new ArrayOfLongsSerDe());
+    s = printBytesAsLongs(bytes);
+    System.out.println(s);
+
+    /*
     System.out.printf("cases %d %d %d %d %d\n",
             VarOptItemsSketch.case1Count,
             VarOptItemsSketch.case2Count,
@@ -774,5 +872,6 @@ public class VarOptItemsSketch<T> {
             VarOptItemsSketch.nLight,
             VarOptItemsSketch.nHeavyGeneral,
             VarOptItemsSketch.nHeavySpecial);
+    */
   }
 }

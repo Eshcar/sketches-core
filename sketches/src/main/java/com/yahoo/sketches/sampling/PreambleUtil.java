@@ -75,10 +75,10 @@ import com.yahoo.sketches.SketchesArgumentException;
  *      ||    7   |    6   |    5   |    4   |    3   |    2   |    1   |     0              |
  *  0   ||--------Reservoir Size (K)---------|  Flags | FamID  | SerVer |   Preamble_Longs   |
  *
- *      ||   23   |   22   |   21   |   20   |   19   |   18   |   17   |    16              |
+ *      ||   15   |   14   |   13   |   12   |   11   |   10   |    9   |     8              |
  *  1   ||---------Item Count in R-----------|-----------Item Count in H---------------------|
  *
- *      ||   31   |   30   |   29   |   28   |   27   |   26   |   25   |    24              |
+ *      ||   23   |   22   |   21   |   20   |   19   |   18   |   17   |    16              |
  *  2   ||--------------------------------Total Weight in R----------------------------------|
  *  </pre>
  *
@@ -105,9 +105,9 @@ final class PreambleUtil {
   //static final int MAX_K_INT             = 4; // used in Union only
 
   // addresses used in varopt
-  static final int ITEM_COUNT_H_INT      = 16;
-  static final int ITEM_COUNT_R_INT      = 20;
-  static final int TOTAL_WEIGHT_R_DOUBLE = 24;
+  static final int ITEM_COUNT_H_INT      = 8;
+  static final int ITEM_COUNT_R_INT      = 12;
+  static final int TOTAL_WEIGHT_R_DOUBLE = 16;
 
   // flag bit masks
   //static final int BIG_ENDIAN_FLAG_MASK = 1;

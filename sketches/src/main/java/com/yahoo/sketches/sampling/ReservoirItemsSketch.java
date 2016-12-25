@@ -398,7 +398,7 @@ public final class ReservoirItemsSketch<T> {
    * @param serDe An instance of ArrayOfItemsSerDe
    * @return a byte array representation of this sketch
    */
-  public byte[] toByteArray(final ArrayOfItemsSerDe<T> serDe) {
+  public byte[] toByteArray(final ArrayOfItemsSerDe<? super T> serDe) {
     if (itemsSeen_ == 0) {
       // null class is ok since empty -- no need to call serDe
       return toByteArray(serDe, null);
@@ -416,7 +416,7 @@ public final class ReservoirItemsSketch<T> {
    * @return a byte array representation of this sketch
    */
   @SuppressWarnings("null") // bytes will be null only if empty == true
-  public byte[] toByteArray(final ArrayOfItemsSerDe<T> serDe, final Class<?> clazz) {
+  public byte[] toByteArray(final ArrayOfItemsSerDe<? super T> serDe, final Class<?> clazz) {
     final int preLongs, outBytes;
     final boolean empty = itemsSeen_ == 0;
     byte[] bytes = null; // for serialized data from serDe
