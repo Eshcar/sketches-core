@@ -592,7 +592,9 @@ public class VarOptItemsSketch<T> {
   }
 
   private void updateWarmupPhase(final T item, final double wt) {
-    assert r_ == 0 && m_ == 0 && h_ < k_;
+    assert r_ == 0;
+    assert m_ == 0;
+    assert h_ <= k_;
 
     if (h_ >= currItemsAlloc_) {
       growReservoir();
@@ -637,7 +639,7 @@ public class VarOptItemsSketch<T> {
   private void validateHeap() {
     for (int j = h_ - 1; j >= 1; --j) {
       final int p = ((j + 1) / 2) - 1;
-      assert weights_.get(p) < weights_.get(j);
+      assert weights_.get(p) <= weights_.get(j);
     }
   }
 
