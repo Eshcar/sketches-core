@@ -22,15 +22,12 @@ import com.yahoo.memory.Memory;
 import com.yahoo.memory.MemoryRegion;
 import com.yahoo.memory.NativeMemory;
 
-import com.yahoo.sketches.ArrayOfDoublesSerDe;
 import com.yahoo.sketches.ArrayOfItemsSerDe;
 import com.yahoo.sketches.ArrayOfLongsSerDe;
-import com.yahoo.sketches.ArrayOfNumbersSerDe;
 import com.yahoo.sketches.Family;
 import com.yahoo.sketches.ResizeFactor;
 import com.yahoo.sketches.SketchesArgumentException;
 import com.yahoo.sketches.Util;
-import com.yahoo.sketches.tuple.DoubleSummary;
 
 /**
  * @author Jon Malkin
@@ -66,6 +63,11 @@ public class VarOptItemsSketch<T> {
   public static int nLight = 0;
   public static int nHeavyGeneral = 0;
   public static int nHeavySpecial = 0;
+
+  public class Result {
+    T[] data;
+    double[] weights;
+  }
 
   private VarOptItemsSketch(final int k, final ResizeFactor rf) {
     // required due to a theorem about lightness during merging
@@ -132,8 +134,31 @@ public class VarOptItemsSketch<T> {
 
   }
 
+  /**
+   * Construct a varopt sampling sketch with up to k samples using the default resize factor (8).
+   *
+   * @param k   Maximum size of sampling. Allocated size may be smaller until reservoir fills.
+   *            Unlike many sketches in this package, this value does <em>not</em> need to be a
+   *            power of 2.
+   * @param <T> The type of object held in the reservoir.
+   * @return A ReservoirLongsSketch initialized with maximum size k and resize factor rf.
+   */
   public static <T> VarOptItemsSketch<T> getInstance(final int k) {
     return new VarOptItemsSketch<>(k, DEFAULT_RESIZE_FACTOR);
+  }
+
+  /**
+   * Construct a varopt sampling sketch with up to k samples using the specified resize factor.
+   *
+   * @param k   Maximum size of sampling. Allocated size may be smaller until reservoir fills.
+   *            Unlike many sketches in this package, this value does <em>not</em> need to be a
+   *            power of 2.
+   * @param rf  <a href="{@docRoot}/resources/dictionary.html#resizeFactor">See Resize Factor</a>
+   * @param <T> The type of object held in the reservoir.
+   * @return A ReservoirLongsSketch initialized with maximum size k and resize factor rf.
+   */
+  public static <T> VarOptItemsSketch<T> getInstance(final int k, final ResizeFactor rf) {
+    return new VarOptItemsSketch<>(k, rf);
   }
 
   /**
@@ -177,8 +202,8 @@ public class VarOptItemsSketch<T> {
 
     final int k = extractReservoirSize(memObj, memAddr);
 
-    // TODO: ensure isEmpty -> preLongs = 1?
     if (isEmpty) {
+      assert numPreLongs == 1;
       return new VarOptItemsSketch<>(k, rf);
     }
 
@@ -296,38 +321,37 @@ public class VarOptItemsSketch<T> {
 
   /**
    * Returns a copy of the items (no weights) in the reservoir, or null if empty. The returned
-   * array length may be smaller than the reservoir capacity.
+   * array length may be smaller than the total capacity.
    *
    * <p>In order to allocate an array of generic type T, uses the class of the first item in
    * the array. This method method may throw an <tt>ArrayAssignmentException</tt> if the
    * reservoir stores instances of a polymorphic base class.</p>
    *
-   * @return A copy of the reservoir array
+   * @return A copy of the sample array
    */
-  @SuppressWarnings("unchecked")
-  public T[] getSamples() {
+  public T[] getDataSamples() {
     if (r_ == 0 && h_ == 0) {
       return null;
     }
 
     final int validIndex = (h_ == 0 ? 1 : 0);
     final Class<?> clazz = data_.get(validIndex).getClass();
-    return getSamples(clazz);
+    return getDataSamples(clazz);
   }
 
   /**
    * Returns a copy of the items (no weights) in the reservoir as members of Class <em>clazz</em>,
-   * or null if empty. The returned array length may be smaller than the reservoir capacity.
+   * or null if empty. The returned array length may be smaller than the total capacity.
    *
    * <p>This method allocates an array of class <em>clazz</em>, which must either match or
    * extend T. This method should be used when objects in the array are all instances of T but
    * are not necessarily instances of the base class.</p>
    *
    * @param clazz A class to which the items are cast before returning
-   * @return A copy of the reservoir array
+   * @return A copy of the sample array
    */
   @SuppressWarnings("unchecked")
-  public T[] getSamples(final Class<?> clazz) {
+  public T[] getDataSamples(final Class<?> clazz) {
     if (r_ == 0 && h_ == 0) {
       return null;
     }
@@ -344,7 +368,62 @@ public class VarOptItemsSketch<T> {
   }
 
   /**
-   * Returns a human-readable summary of the sketch, without data.
+   * Returns a VarOptItemsSketch.Result structure containing the items and weights in separate
+   * arrays. The returned array lengths may be smaller than the total capacity.
+   *
+   * @return A Result object containing items and weights.
+   */
+  public Result getSamples() {
+    if (r_ == 0 && h_ == 0) {
+      return null;
+    }
+
+    final int validIndex = (h_ == 0 ? 1 : 0);
+    final Class<?> clazz = data_.get(validIndex).getClass();
+    return getSamples(clazz);
+  }
+
+  /**
+   * Returns a VarOptItemsSketch.Result structure containing the items and weights in separate
+   * arrays. The returned array lengths may be smaller than the total capacity.
+   *
+   * <p>This method allocates an array of class <em>clazz</em>, which must either match or
+   * extend T. This method should be used when objects in the array are all instances of T but
+   * are not necessarily instances of the base class.</p>
+   *
+   * @param clazz A class to which the items are cast before returning
+   * @return A Result object containing items and weights.
+   */
+  @SuppressWarnings("unchecked")
+  public Result getSamples(final Class<?> clazz) {
+    if (r_ == 0 && h_ == 0) {
+      return null;
+    }
+
+    // are 2 Array.asList(data_.subList()) copies better?
+    final T[] prunedItems = (T[]) Array.newInstance(clazz, getNumSamples());
+    final double[] prunedWeights = new double[getNumSamples()];
+    int j = 0;
+    final double rWeight = totalWtR_ / r_;
+    for (int i = 0; i < data_.size(); ++i) {
+      final T item = data_.get(i);
+      if (item != null) {
+        prunedItems[j] = item;
+        prunedWeights[j] = (weights_.get(i) > 0 ? weights_.get(i) : rWeight);
+        ++j;
+      }
+    }
+
+    final Result output = new Result();
+    output.data = prunedItems;
+    output.weights = prunedWeights;
+
+    return output;
+  }
+
+
+  /**
+   * Returns a human-readable summary of the sketch.
    *
    * @return A string version of the sketch summary
    */
@@ -414,7 +493,7 @@ public class VarOptItemsSketch<T> {
       outBytes = 8;
     } else {
       preLongs = (r_ == 0 ? 2 : Family.VAROPT.getMaxPreLongs());
-      bytes = serDe.serializeToByteArray(getSamples(clazz));
+      bytes = serDe.serializeToByteArray(getDataSamples(clazz));
       outBytes = (preLongs << 3) + (h_ * Double.BYTES) + bytes.length;
     }
     final byte[] outArr = new byte[outBytes];
@@ -711,8 +790,7 @@ public class VarOptItemsSketch<T> {
       return pickRandomSlotInR();
     } else if (m_ == 1) {
       // check if we keep the item in M or pick one from R
-      // p(keep) = (numCand - 1) * wt_M / wt_newtotal
-      // TODO: is wt_newtotal correct? seems like wt_cand in code
+      // p(keep) = (numCand - 1) * wt_M / wt_cand
       final double wtMCand = weights_.get(h_); // slot of item in M is h_
       if (wtCand * SamplingUtil.nextDoubleExcludeZero() < (numCand - 1) * wtMCand) {
         ++case2Count;
@@ -796,7 +874,8 @@ public class VarOptItemsSketch<T> {
 
   /**
    * Increases allocated sampling size by (adjusted) ResizeFactor and copies data from old
-   * sampling.
+   * sampling. Only happens when buffer is not full, so don't need to worry about blindly copying
+   * the array data.
    */
   private void growReservoir() {
     currItemsAlloc_ = SamplingUtil.getAdjustedSize(k_, currItemsAlloc_ << rf_.lg());
@@ -849,15 +928,13 @@ public class VarOptItemsSketch<T> {
 
     System.out.println(sketch);
     byte[] bytes = sketch.toByteArray(new ArrayOfLongsSerDe());
-    String s = printBytesAsLongs(bytes);
-    //System.out.println(s);
+    //System.out.println(printBytesAsLongs(bytes););
 
     final Memory mem = new NativeMemory(bytes);
     final VarOptItemsSketch<Long> rebuilt = VarOptItemsSketch.getInstance(mem, new ArrayOfLongsSerDe());
     System.out.println(rebuilt);
     bytes = rebuilt.toByteArray(new ArrayOfLongsSerDe());
-    s = printBytesAsLongs(bytes);
-    System.out.println(s);
+    System.out.println(printBytesAsLongs(bytes));
 
     /*
     System.out.printf("cases %d %d %d %d %d\n",

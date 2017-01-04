@@ -134,10 +134,10 @@ public final class ReservoirItemsSketch<T> {
   }
 
   /**
-   * Construct a mergeable sampling sample sketch with up to k samples using the default resize
+   * Construct a mergeable sampling sketch with up to k samples using the default resize
    * factor (8).
    *
-   * @param k   Maximum size of sampling. Allocated size may be smaller until sampling fills.
+   * @param k   Maximum size of sampling. Allocated size may be smaller until reservoir fills.
    *            Unlike many sketches in this package, this value does <em>not</em> need to be a
    *            power of 2.
    * @param <T> The type of object held in the reservoir.
@@ -148,10 +148,9 @@ public final class ReservoirItemsSketch<T> {
   }
 
   /**
-   * Construct a mergeable sampling sample sketch with up to k samples using the default resize
-   * factor (8).
+   * Construct a mergeable sampling sketch with up to k samples using a specified resize factor.
    *
-   * @param k   Maximum size of sampling. Allocated size may be smaller until sampling fills.
+   * @param k   Maximum size of sampling. Allocated size may be smaller until reservoir fills.
    *            Unlike many sketches in this package, this value does <em>not</em> need to be a
    *            power of 2.
    * @param rf  <a href="{@docRoot}/resources/dictionary.html#resizeFactor">See Resize Factor</a>

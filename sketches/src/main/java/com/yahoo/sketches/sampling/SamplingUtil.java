@@ -38,4 +38,22 @@ final class SamplingUtil {
             ? lgMin : (lgRf == 0) ? lgTarget
             : (lgTarget - lgMin) % lgRf + lgMin;
   }
+
+  // From: https://stackoverflow.com/a/23574723
+  // which is a re-indexed version of Luc Devroye's "Second Waiting Time Method" on page 522 of his
+  // text "Non-Uniform Random Variate Generation."
+  // Faster acceptance/rejection methods exist, but are more complex to implement. And from the
+  // comment thread, may be less numerically stable (although likely an implementation issue).
+  static int getBinomial(final int n, final double p) {
+    final double logq = Math.log(1.0 - p);
+    int k = 0;
+    double sum = 0;
+    for (;;) {
+      sum += Math.log(Math.random()) / (n - k);
+      if (sum < logq) {
+        return k;
+      }
+      ++k;
+    }
+  }
 }
