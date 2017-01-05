@@ -92,6 +92,18 @@ public class VarOptItemsSketchTest {
     println(vis.toString());
   }
 
+  @Test(expectedExceptions = SketchesArgumentException.class)
+  public void checkInvalidWeight() {
+    final VarOptItemsSketch<String> vis = VarOptItemsSketch.getInstance(5);
+    try {
+      vis.update(null, 1.0); // should work fine
+    } catch (final SketchesArgumentException e) {
+      fail();
+    }
+
+    vis.update("invalidWeight", -1.0); // should fail
+  }
+
   @Test
   public void checkUnderfullSketchSerialization() {
     final VarOptItemsSketch<Long> sketch = VarOptItemsSketch.getInstance(20);
@@ -154,7 +166,31 @@ public class VarOptItemsSketchTest {
     assertTrue(orig.weights[1] == 101.0);
   }
 
+  @Test
+  public void checkPseudoLightUpdate() {
+    // using it as a chance to test an exactly-full sketch
+    final Memory mem = getLargeSerializedLongsVIS();
+    final VarOptItemsSketch<Long> sketch
+            = VarOptItemsSketch.getInstance(mem, new ArrayOfLongsSerDe());
 
+    sketch.update(0L, 1.0);
+  }
+
+  @Test
+  public void checkPseudoHeavyUpdates() {
+    final int k = 16;
+    final VarOptItemsSketch<Long> sketch = VarOptItemsSketch.getInstance(k);
+    for (long i = 0; i <= k; ++i) {
+      sketch.update(i, 1.0);
+    }
+
+    // First k-1 updates should be updatePseudoHeavyGeneral()
+    // Last one should cat updatePseudoHeavyREq1(),since we'll ahve added k-1 heavy
+    // items, leaving only 1 item left in R
+    for (long i = 1; i <= k; ++i) {
+      sketch.update(-i, k + (i * 100.0));
+    }
+  }
 
   private Memory getSmallSerializedLongsVIS() {
     final VarOptItemsSketch<Long> sketch = VarOptItemsSketch.getInstance(5);
@@ -165,22 +201,20 @@ public class VarOptItemsSketchTest {
     sketch.update(10L, Math.sqrt(70.0));
     //sketch.update(7L, Math.sqrt(1.0));
 
-    System.out.println(sketch);
     final byte[] bytes = sketch.toByteArray(new ArrayOfLongsSerDe());
 
     return new NativeMemory(bytes);
   }
 
+  /* Returns a serialized sketch that has ended the warmup phase and added an extra element to
+     trigger heapfication. The next update() will trigger one of hhe non-warmup paths.
+   */
   private Memory getLargeSerializedLongsVIS() {
     final VarOptItemsSketch<Long> sketch = VarOptItemsSketch.getInstance(1024);
-    for (long i = 1; i <= 1024; ++i) {
+    for (long i = 0; i <= 1024; ++i) {
       sketch.update(i, 1.0);
-      //System.out.println(sketch);
     }
-    sketch.update(10L, Math.sqrt(70.0));
-    //sketch.update(7L, Math.sqrt(1.0));
 
-    System.out.println(sketch);
     final byte[] bytes = sketch.toByteArray(new ArrayOfLongsSerDe());
 
     return new NativeMemory(bytes);

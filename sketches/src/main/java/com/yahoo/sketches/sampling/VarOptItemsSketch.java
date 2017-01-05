@@ -17,6 +17,7 @@ import static com.yahoo.sketches.sampling.PreambleUtil.getAndCheckPreLongs;
 import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 import com.yahoo.memory.Memory;
 import com.yahoo.memory.MemoryRegion;
@@ -104,21 +105,33 @@ public class VarOptItemsSketch<T> {
                             final int rCount,
                             final double totalWtR) {
     if (dataList == null) {
-      throw new SketchesArgumentException("Instantiating sketch with null reservoir");
+      throw new SketchesArgumentException("Instantiating sketch with null data items");
+    }
+    if (weightList == null) {
+      throw new SketchesArgumentException("Instantiating sketch with null weights");
+    }
+    if (dataList.size() != weightList.size()) {
+      throw new SketchesArgumentException("data and weight list lengths must match. data: "
+              + dataList.size() + ", weights: " + weightList.size());
     }
     if (k < 2) {
       throw new SketchesArgumentException("Cannot instantiate sketch with reservoir size less than 2");
     }
-    if (k + 1 < dataList.size()) {
-      throw new SketchesArgumentException("Instantiating sketch with max size less than array length: "
-              + k + " max size, array of length " + dataList.size());
+    if (hCount < 0 || rCount < 0) {
+      throw new SketchesArgumentException("H and R region sizes cannot be negative: |H| = "
+              + hCount + ", |R| = " + rCount);
     }
-    final int numItems = hCount + rCount;
-    if ((numItems == k && dataList.size() < k)
-            || (numItems < k && dataList.size() < numItems)) {
-      throw new SketchesArgumentException("Instantiating sketch with too few samples. Items seen: "
-              + numItems + ", max reservoir size: " + k
-              + ", data array length: " + dataList.size());
+
+    if (rCount == 0) {
+      if (dataList.size() != hCount) {
+        throw new SketchesArgumentException("Instantiating sketch with incorrect number of "
+                + "items. Expected items: " + hCount + ", found: " + dataList.size());
+      }
+    } else { // rCount > 0
+      if (dataList.size() != k + 1) {
+        throw new SketchesArgumentException("Sketch in sampling mode must have k+1 elements. "
+                + "k+1 = " + (k + 1) + ", data length = " + dataList.size());
+      }
     }
 
     // Should we compute target current allocation to validate?
@@ -127,11 +140,10 @@ public class VarOptItemsSketch<T> {
     r_ = rCount;
     m_ = 0;
     totalWtR_ = totalWtR;
-    currItemsAlloc_ = dataList.size();
+    currItemsAlloc_ = (k == dataList.size() ? k + 1 : dataList.size());
     rf_ = rf;
     data_ = dataList;
     weights_ = weightList;
-
   }
 
   /**
@@ -222,9 +234,9 @@ public class VarOptItemsSketch<T> {
     }
 
     final int preLongBytes = numPreLongs << 3;
-    int allocatedItems = k; // default to full reservoir
+    int allocatedItems = k + 1; // default to full reservoir
 
-    if (rCount == 0 && hCount < k) {
+    if (rCount == 0) {
       // under-full so determine size to allocate, using ceilingLog2(hCount) as minimum
       // casts to int are safe since under-full
       final int ceilingLgK = Util.toLog2(Util.ceilingPowerOf2(k), "getInstance");
@@ -233,34 +245,40 @@ public class VarOptItemsSketch<T> {
               Math.max(minLgSize, MIN_LG_ARR_ITEMS));
 
       allocatedItems = SamplingUtil.getAdjustedSize(k, 1 << initialLgSize);
-    } else {
-      ++allocatedItems; // k + 1
+      if (allocatedItems == k) {
+        ++allocatedItems;
+      }
     }
 
     final int totalItems = hCount + rCount;
 
-    // Read hCount weightList, but need full-sized ArrayList
+    // allocate full-sized ArrayLists, but initially read only hCount items
+    final long weightOffsetBytes = TOTAL_WEIGHT_R_DOUBLE + (rCount > 0 ? Double.BYTES : 0);
     final ArrayList<Double> weightList = new ArrayList<>(allocatedItems);
     final double[] wts = new double[allocatedItems];
-    final long weightOffsetBytes = TOTAL_WEIGHT_R_DOUBLE + (rCount > 0 ? Double.BYTES : 0);
     srcMem.getDoubleArray(weightOffsetBytes, wts, 0, hCount);
-    // TODO: find a better solution
-    int i = 0;
-    for (; i < hCount; ++i) {
+    // can't use Arrays.asList(wts) since double[] rather than Double[]
+    for (int i = 0; i < hCount; ++ i) {
       weightList.add(wts[i]);
-    }
-    for (; i < allocatedItems; ++i) {
-      weightList.add(-1.0);
     }
 
     final long offsetBytes = preLongBytes + (hCount * Double.BYTES);
     final T[] data = serDe.deserializeFromMemory(
             new MemoryRegion(srcMem, offsetBytes, srcMem.getCapacity() - offsetBytes), totalItems);
-    // TODO: find a better solution
+    final List<T> wrappedData = Arrays.asList(data);
     final ArrayList<T> dataList = new ArrayList<>(allocatedItems);
-    dataList.addAll(Arrays.asList(data).subList(0, hCount));
-    dataList.add(null);
-    dataList.addAll(Arrays.asList(data).subList(hCount, totalItems));
+    dataList.addAll(wrappedData.subList(0, hCount));
+
+    // check if we need to add null value between H and R regions
+    if (rCount > 0) {
+      weightList.add(null);
+      for (int i = 0; i < rCount; ++i) {
+        weightList.add(-1.0);
+      }
+
+      dataList.add(null);
+      dataList.addAll(wrappedData.subList(hCount, totalItems));
+    }
 
     return new VarOptItemsSketch<>(dataList, weightList, k, rf, hCount, rCount, totalRWeight);
   }
@@ -297,8 +315,7 @@ public class VarOptItemsSketch<T> {
    */
   public void update(final T item, final double weight) {
     if (weight <= 0.0) {
-      throw new SketchesArgumentException("Item weights must be strictly positive: "
-              + weight);
+      throw new SketchesArgumentException("Item weights must be strictly positive: " + weight);
     }
     if (item == null) {
       return;
@@ -889,6 +906,7 @@ public class VarOptItemsSketch<T> {
     weights_.ensureCapacity(currItemsAlloc_);
   }
 
+  /*
   static String printBytesAsLongs(final byte[] byteArr) {
     final StringBuilder sb = new StringBuilder();
     for (int i = 0; i < byteArr.length; i += 8) {
@@ -902,6 +920,7 @@ public class VarOptItemsSketch<T> {
 
     return sb.toString();
   }
+  */
 
   public static void main(final String[] args) {
     /*
@@ -915,7 +934,7 @@ public class VarOptItemsSketch<T> {
       }
     }
     */
-
+    /*
     final VarOptItemsSketch<Long> sketch = VarOptItemsSketch.getInstance(5);
     for (long i = 1; i <= 5; ++i) {
       sketch.update(i, 1.0);
@@ -937,7 +956,7 @@ public class VarOptItemsSketch<T> {
     System.out.println(rebuilt);
     bytes = rebuilt.toByteArray(new ArrayOfLongsSerDe());
     System.out.println(printBytesAsLongs(bytes));
-
+    */
     /*
     System.out.printf("cases %d %d %d %d %d\n",
             VarOptItemsSketch.case1Count,
