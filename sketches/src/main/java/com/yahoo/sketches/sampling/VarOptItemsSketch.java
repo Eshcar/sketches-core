@@ -105,10 +105,10 @@ public class VarOptItemsSketch<T> {
                             final int rCount,
                             final double totalWtR) {
     if (dataList == null) {
-      throw new SketchesArgumentException("Instantiating sketch with null data items");
+      throw new SketchesArgumentException("Instantiating sketch with null data item list");
     }
     if (weightList == null) {
-      throw new SketchesArgumentException("Instantiating sketch with null weights");
+      throw new SketchesArgumentException("Instantiating sketch with null weight list");
     }
     if (dataList.size() != weightList.size()) {
       throw new SketchesArgumentException("data and weight list lengths must match. data: "
@@ -129,8 +129,8 @@ public class VarOptItemsSketch<T> {
       }
     } else { // rCount > 0
       if (dataList.size() != k + 1) {
-        throw new SketchesArgumentException("Sketch in sampling mode must have k+1 elements. "
-                + "k+1 = " + (k + 1) + ", data length = " + dataList.size());
+        throw new SketchesArgumentException("Sketch in sampling mode must have array of k+1 "
+                + "elements. k+1 = " + (k + 1) + ", data length = " + dataList.size());
       }
     }
 
@@ -140,7 +140,7 @@ public class VarOptItemsSketch<T> {
     r_ = rCount;
     m_ = 0;
     totalWtR_ = totalWtR;
-    currItemsAlloc_ = (k == dataList.size() ? k + 1 : dataList.size());
+    currItemsAlloc_ = (dataList.size() == k ? k + 1 : dataList.size());
     rf_ = rf;
     data_ = dataList;
     weights_ = weightList;
@@ -237,8 +237,7 @@ public class VarOptItemsSketch<T> {
     int allocatedItems = k + 1; // default to full reservoir
 
     if (rCount == 0) {
-      // under-full so determine size to allocate, using ceilingLog2(hCount) as minimum
-      // casts to int are safe since under-full
+      // Not in sampling mode, so determine size to allocate, using ceilingLog2(hCount) as minimum
       final int ceilingLgK = Util.toLog2(Util.ceilingPowerOf2(k), "getInstance");
       final int minLgSize = Util.toLog2(Util.ceilingPowerOf2(hCount), "getInstance");
       final int initialLgSize = SamplingUtil.startingSubMultiple(ceilingLgK, rf.lg(),
@@ -269,7 +268,7 @@ public class VarOptItemsSketch<T> {
     final ArrayList<T> dataList = new ArrayList<>(allocatedItems);
     dataList.addAll(wrappedData.subList(0, hCount));
 
-    // check if we need to add null value between H and R regions
+    // check if we need to add null value between H and R regions and load items in R
     if (rCount > 0) {
       weightList.add(null);
       for (int i = 0; i < rCount; ++i) {
@@ -337,61 +336,13 @@ public class VarOptItemsSketch<T> {
   }
 
   /**
-   * Returns a copy of the items (no weights) in the reservoir, or null if empty. The returned
-   * array length may be smaller than the total capacity.
-   *
-   * <p>In order to allocate an array of generic type T, uses the class of the first item in
-   * the array. This method method may throw an <tt>ArrayAssignmentException</tt> if the
-   * reservoir stores instances of a polymorphic base class.</p>
-   *
-   * @return A copy of the sample array
-   */
-  public T[] getDataSamples() {
-    if (r_ == 0 && h_ == 0) {
-      return null;
-    }
-
-    final int validIndex = (h_ == 0 ? 1 : 0);
-    final Class<?> clazz = data_.get(validIndex).getClass();
-    return getDataSamples(clazz);
-  }
-
-  /**
-   * Returns a copy of the items (no weights) in the reservoir as members of Class <em>clazz</em>,
-   * or null if empty. The returned array length may be smaller than the total capacity.
-   *
-   * <p>This method allocates an array of class <em>clazz</em>, which must either match or
-   * extend T. This method should be used when objects in the array are all instances of T but
-   * are not necessarily instances of the base class.</p>
-   *
-   * @param clazz A class to which the items are cast before returning
-   * @return A copy of the sample array
-   */
-  @SuppressWarnings("unchecked")
-  public T[] getDataSamples(final Class<?> clazz) {
-    if (r_ == 0 && h_ == 0) {
-      return null;
-    }
-
-    // are 2 Array.asList(data_.subList()) copies better?
-    final T[] prunedList = (T[]) Array.newInstance(clazz, getNumSamples());
-    int i = 0;
-    for (T item : data_) {
-      if (item != null) {
-        prunedList[i++] = item;
-      }
-    }
-    return prunedList;
-  }
-
-  /**
    * Returns a VarOptItemsSketch.Result structure containing the items and weights in separate
    * arrays. The returned array lengths may be smaller than the total capacity.
    *
    * @return A Result object containing items and weights.
    */
   public Result getSamples() {
-    if (r_ == 0 && h_ == 0) {
+    if (r_ + h_ == 0) {
       return null;
     }
 
@@ -405,15 +356,15 @@ public class VarOptItemsSketch<T> {
    * arrays. The returned array lengths may be smaller than the total capacity.
    *
    * <p>This method allocates an array of class <em>clazz</em>, which must either match or
-   * extend T. This method should be used when objects in the array are all instances of T but
-   * are not necessarily instances of the base class.</p>
+   * be parent of T. This method should be used when objects in the array are all instances of T
+   * but are not necessarily instances of the base class.</p>
    *
    * @param clazz A class to which the items are cast before returning
    * @return A Result object containing items and weights.
    */
   @SuppressWarnings("unchecked")
   public Result getSamples(final Class<?> clazz) {
-    if (r_ == 0 && h_ == 0) {
+    if (r_ + h_ == 0) {
       return null;
     }
 
@@ -446,7 +397,6 @@ public class VarOptItemsSketch<T> {
    */
   @Override
   public String toString() {
-    //throw new RuntimeException("Write me!");
 
     final StringBuilder sb = new StringBuilder();
 
@@ -462,6 +412,7 @@ public class VarOptItemsSketch<T> {
     sb.append("   Resize factor: ").append(rf_).append(LS);
     sb.append("### END SKETCH SUMMARY").append(LS);
 
+    /*
     if (h_ + r_ > 0) {
       int stop = getNumSamples();
       if (r_ > 0) { stop = k_ + 1; }
@@ -470,6 +421,7 @@ public class VarOptItemsSketch<T> {
                 .append(", ").append(weights_.get(i)).append(")").append(LS);
       }
     }
+    */
 
     return sb.toString();
   }
@@ -764,9 +716,6 @@ public class VarOptItemsSketch<T> {
     assert numCands == m_ + r_; // essential
     assert m_ == 0 || m_ == 1;
 
-    //System.out.printf("Before growing: %d cands weighing %.6f, provisional new tau is %.6f\n",
-    //        numCands, wtCands, wtCands / (numCands - 1));
-
     while (h_ > 0) {
       final double nextWt = peekMin();
       final double nextTotWt = wtCands + nextWt;
@@ -782,10 +731,6 @@ public class VarOptItemsSketch<T> {
         break;
       }
     }
-
-    //System.out.printf("After growing: %d cands weighing %.6f, actual new tau is %.6f\n",
-    //        numCands, wtCands, wtCands / (numCands - 1));
-
 
     downsampleCandidateSet(wtCands, numCands);
   }
@@ -889,6 +834,32 @@ public class VarOptItemsSketch<T> {
     final Double wt = weights_.get(src);
     weights_.set(src, weights_.get(dst));
     weights_.set(dst, wt);
+  }
+
+  /**
+   * Returns a copy of the items (no weights) in the reservoir as members of Class <em>clazz</em>,
+   * or null if empty. The returned array length may be smaller than the total capacity.
+   *
+   * <p>This method allocates an array of class <em>clazz</em>, which must either match or
+   * extend T. This method should be used when objects in the array are all instances of T but
+   * are not necessarily instances of the base class.</p>
+   *
+   * @param clazz A class to which the items are cast before returning
+   * @return A copy of the sample array
+   */
+  @SuppressWarnings("unchecked")
+  private T[] getDataSamples(final Class<?> clazz) {
+    assert h_ + r_ > 0;
+
+    // are 2 Array.asList(data_.subList()) copies better?
+    final T[] prunedList = (T[]) Array.newInstance(clazz, getNumSamples());
+    int i = 0;
+    for (T item : data_) {
+      if (item != null) {
+        prunedList[i++] = item;
+      }
+    }
+    return prunedList;
   }
 
   /**
