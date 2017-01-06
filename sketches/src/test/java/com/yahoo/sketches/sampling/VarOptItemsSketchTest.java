@@ -16,6 +16,7 @@ import com.yahoo.memory.NativeMemory;
 import com.yahoo.sketches.ArrayOfLongsSerDe;
 import com.yahoo.sketches.ArrayOfStringsSerDe;
 import com.yahoo.sketches.Family;
+import com.yahoo.sketches.ResizeFactor;
 import com.yahoo.sketches.SketchesArgumentException;
 import com.yahoo.sketches.hll.Preamble;
 
@@ -102,20 +103,62 @@ public class VarOptItemsSketchTest {
     final byte[] sketchBytes = sketch.toByteArray(new ArrayOfLongsSerDe());
     final Memory srcMem = new NativeMemory(sketchBytes);
 
+    // we'll use the same initial sketch a few times, so grab a copy of it
     final byte[] copyBytes = new byte[sketchBytes.length];
     final Memory mem = new NativeMemory(copyBytes);
-    NativeMemory.copy(srcMem, 0, mem, 0, sketchBytes.length);
-
     final Object memObj = mem.array(); // may be null
     final long memAddr = mem.getCumulativeOffset(0L);
-    assertEquals(PreambleUtil.extractPreLongs(memObj, memAddr), 2);
-    PreambleUtil.insertPreLongs(memObj, memAddr, 3); //
 
+    // copy the bytes
+    NativeMemory.copy(srcMem, 0, mem, 0, sketchBytes.length);
+    assertEquals(PreambleUtil.extractPreLongs(memObj, memAddr), 2);
+
+    // no items in R but 3 preLongs
     try {
+      PreambleUtil.insertPreLongs(memObj, memAddr, 3);
       VarOptItemsSketch.getInstance(mem, new ArrayOfLongsSerDe());
       fail();
     } catch (final SketchesArgumentException e) {
       assertTrue(e.getMessage().startsWith("Possible Corruption: 3 preLongs but"));
+    }
+
+    // refresh the copy
+    NativeMemory.copy(srcMem, 0, mem, 0, sketchBytes.length);
+    assertEquals(PreambleUtil.extractPreLongs(memObj, memAddr), 2);
+
+    // negative H region count
+    try {
+      PreambleUtil.insertHRegionItemCount(memObj, memAddr, -1);
+      VarOptItemsSketch.getInstance(mem, new ArrayOfLongsSerDe());
+      fail();
+    } catch (final SketchesArgumentException e) {
+      assertTrue(e.getMessage().equals("Possible Corruption: H region count cannot be negative: -1"));
+    }
+
+    // refresh the copy
+    NativeMemory.copy(srcMem, 0, mem, 0, sketchBytes.length);
+    assertEquals(PreambleUtil.extractHRegionItemCount(memObj, memAddr), k);
+
+    // negative R region count
+    try {
+      PreambleUtil.insertRRegionItemCount(memObj, memAddr, -128);
+      VarOptItemsSketch.getInstance(mem, new ArrayOfLongsSerDe());
+      fail();
+    } catch (final SketchesArgumentException e) {
+      assertTrue(e.getMessage().equals("Possible Corruption: R region count cannot be negative: -128"));
+    }
+
+    // refresh the copy
+    NativeMemory.copy(srcMem, 0, mem, 0, sketchBytes.length);
+    assertEquals(PreambleUtil.extractRRegionItemCount(memObj, memAddr), 0);
+
+    // invalid k < 2
+    try {
+      PreambleUtil.insertReservoirSize(memObj, memAddr, 0);
+      VarOptItemsSketch.getInstance(mem, new ArrayOfLongsSerDe());
+      fail();
+    } catch (final SketchesArgumentException e) {
+      assertTrue(e.getMessage().equals("Possible Corruption: k must be at least 2: 0"));
     }
   }
 
@@ -141,6 +184,30 @@ public class VarOptItemsSketchTest {
     println(vis.toString());
   }
 
+  @Test
+  public void checkNonEmptyDegenerateSketch() {
+    // make an empty serialized sketch, then copy the data into a length-16 byte array
+    // so there'll be no data, then clear the empty flag so it will try to load
+    // the rest.
+    final VarOptItemsSketch<String> vis = VarOptItemsSketch.getInstance(12, ResizeFactor.X2);
+    final byte[] sketchBytes = vis.toByteArray(new ArrayOfStringsSerDe());
+    final byte[] dstByteArr = new byte[16];
+    final Memory mem = new NativeMemory(dstByteArr);
+    mem.putByteArray(0, sketchBytes, 0, sketchBytes.length);
+
+    // ensure non-empty but with H and R region sizes set to 0
+    final Object memObj = mem.array(); // may be null
+    final long memAddr = mem.getCumulativeOffset(0L);
+    PreambleUtil.insertFlags(memObj, memAddr, 0); // set not-empty
+    PreambleUtil.insertHRegionItemCount(memObj, memAddr, 0);
+    PreambleUtil.insertRRegionItemCount(memObj, memAddr, 0);
+
+    final VarOptItemsSketch<String> rebuilt
+            = VarOptItemsSketch.getInstance(mem, new ArrayOfStringsSerDe());
+    assertNotNull(rebuilt);
+    assertEquals(rebuilt.getNumSamples(), 0);
+  }
+
   @Test(expectedExceptions = SketchesArgumentException.class)
   public void checkInvalidWeight() {
     final VarOptItemsSketch<String> vis = VarOptItemsSketch.getInstance(5);
@@ -151,6 +218,32 @@ public class VarOptItemsSketchTest {
     }
 
     vis.update("invalidWeight", -1.0); // should fail
+  }
+
+  @Test
+  public void checkCorruptSerializedWeight() {
+    final VarOptItemsSketch<String> vis = VarOptItemsSketch.getInstance(24);
+    for (int i = 1; i < 10; ++i) {
+      vis.update(Integer.toString(i), (double) i);
+    }
+
+    final byte[] sketchBytes = vis.toByteArray(new ArrayOfStringsSerDe(), String.class);
+    final Memory mem = new NativeMemory(sketchBytes);
+    final Object memObj = mem.array(); // may be null
+    final long memAddr = mem.getCumulativeOffset(0L);
+
+    // weights will be stored in th first double after the preamble
+    final int numPreLongs = PreambleUtil.extractPreLongs(memObj, memAddr);
+    final int weightOffset = numPreLongs << 3;
+    mem.putDouble(weightOffset, -1.25); // inject a negative weight
+
+    try {
+      VarOptItemsSketch.getInstance(mem, new ArrayOfStringsSerDe());
+      fail();
+    } catch (final SketchesArgumentException e) {
+      assertTrue(e.getMessage().equals("Possible Corruption: Non-positive weight in "
+              + "getInstance(): -1.25"));
+    }
   }
 
   @Test
@@ -179,7 +272,7 @@ public class VarOptItemsSketchTest {
   }
 
   @Test
-  public void checkUnderfullSketchSerialization() {
+  public void checkUnderFullSketchSerialization() {
     final VarOptItemsSketch<Long> sketch = VarOptItemsSketch.getInstance(2048);
     for (long i = 0; i < 10; ++i) {
       sketch.update(i, 1.0);
@@ -190,6 +283,24 @@ public class VarOptItemsSketchTest {
     final Memory mem = new NativeMemory(bytes);
 
     // ensure 2 preLongs
+    final Object memObj = mem.array(); // may be null
+    final long memAddr = mem.getCumulativeOffset(0L);
+    assertEquals(PreambleUtil.extractPreLongs(memObj, memAddr), 2);
+
+    final VarOptItemsSketch<Long> rebuilt
+            = VarOptItemsSketch.getInstance(mem, new ArrayOfLongsSerDe());
+    checkIfEqual(rebuilt, sketch);
+  }
+
+  @Test
+  public void checkEndOfWarmupSketchSerialization() {
+    final int k = 2048;
+    final VarOptItemsSketch<Long> sketch = getUnweightedLongsVIS(k, k);
+
+    final byte[] bytes = sketch.toByteArray(new ArrayOfLongsSerDe());
+    final Memory mem = new NativeMemory(bytes);
+
+    // ensure still only 2 preLongs
     final Object memObj = mem.array(); // may be null
     final long memAddr = mem.getCumulativeOffset(0L);
     assertEquals(PreambleUtil.extractPreLongs(memObj, memAddr), 2);

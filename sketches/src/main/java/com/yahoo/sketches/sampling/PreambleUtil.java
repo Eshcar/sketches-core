@@ -61,7 +61,6 @@ import com.yahoo.sketches.SketchesArgumentException;
  *      ||    7   |    6   |    5   |    4   |    3   |    2   |    1   |     0              |
  *  0   ||---------Max Res. Size (K)---------|  Flags | FamID  | SerVer |   Preamble_Longs   |
  * </pre>
-<<<<<<< HEAD
  *
  * <p><string>VarOpt:</string> A VarOpt sketch has a more complex internal data structure and
  * requires a larger preamble. Values serving a similar purpose in both reservoir and varopt sampling
@@ -82,8 +81,6 @@ import com.yahoo.sketches.SketchesArgumentException;
  *      ||   23   |   22   |   21   |   20   |   19   |   18   |   17   |    16              |
  *  2   ||--------------------------------Total Weight in R----------------------------------|
  *  </pre>
-=======
->>>>>>> 91bc278884db159fd5d43949acd889386574ed33
  *
  *  @author Jon Malkin
  *  @author Lee Rhodes
