@@ -411,17 +411,6 @@ public class VarOptItemsSketch<T> {
    */
   @Override
   public String toString() {
-    return toString(false);
-  }
-
-  /**
-   * Returns a human-readable dump of the sketch, possibly including data
-   *
-   * @param printData Flag to indicate whether to print samples and weights
-   * @return A string version of the sketch summary
-   */
-  public String toString(final boolean printData) {
-
     final StringBuilder sb = new StringBuilder();
 
     final String thisSimpleName = this.getClass().getSimpleName();
