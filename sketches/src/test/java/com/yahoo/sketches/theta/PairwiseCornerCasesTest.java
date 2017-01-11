@@ -1,9 +1,15 @@
 /*
- * Copyright 2016, Yahoo! Inc. Licensed under the terms of the
+ * Copyright 2017, Yahoo! Inc. Licensed under the terms of the
  * Apache License 2.0. See LICENSE file at the project root for terms.
  */
 
 package com.yahoo.sketches.theta;
+
+import static com.yahoo.sketches.theta.PairwiseCornerCasesTest.State.EMPTY;
+import static com.yahoo.sketches.theta.PairwiseCornerCasesTest.State.EST_DIR;
+import static com.yahoo.sketches.theta.PairwiseCornerCasesTest.State.EST_HEAP;
+import static com.yahoo.sketches.theta.PairwiseCornerCasesTest.State.EST_HEAP_UNORDERED;
+import static com.yahoo.sketches.theta.PairwiseCornerCasesTest.State.NULL;
 
 import java.util.Random;
 
@@ -74,18 +80,18 @@ public class PairwiseCornerCasesTest {
   }
 
   @Test
-  public void checkCornerCases() {
+  public void checkCornerCases() { //Check all corner cases except unordered, which is not allowed
     int k = 64;
-    for (int i = 0; i < 5; i++) {
-      for (int j = 0; j < 5; j++) {
-        cornerCaseChecks(i, j, k);
+    for (State stateA : State.values()) {
+      for (State stateB : State.values()) {
+        if ((stateA == EST_HEAP_UNORDERED) || (stateB == EST_HEAP_UNORDERED)) { continue; }
+        cornerCaseChecks(stateA, stateB, k);
       }
     }
   }
 
-
-  private static void cornerCaseChecks(int stateA, int stateB, int k) {
-    //println("StateA: " + stateA + ", StateB: " + stateB);
+  private static void cornerCaseChecks(State stateA, State stateB, int k) {
+    println("StateA: " + stateA + ", StateB: " + stateB);
     CompactSketch cskA = generate(stateA, k);
     CompactSketch cskB = generate(stateB, k);
     Union union = Sketches.setOperationBuilder().buildUnion(k);
@@ -107,7 +113,7 @@ public class PairwiseCornerCasesTest {
     double pwTheta = (pwComp != null)? pwComp.getTheta() : 1.0;
     int pwEnt = (pwComp != null)? pwComp.getRetainedEntries(true) : 0;
 
-    if (stateA == 0 && stateB == 0) {
+    if ((stateA == NULL) && (stateB == NULL)) {
       Assert.assertEquals(pwEst, -1.0, 0.0);
       Assert.assertEquals(stdEst, 0.0, 0.0);
     } else {
@@ -132,7 +138,7 @@ public class PairwiseCornerCasesTest {
     pwTheta = (pwComp != null)? pwComp.getTheta() : 1.0;
     pwEnt = (pwComp != null)? pwComp.getRetainedEntries(true) : 0;
 
-    if (stateA == 0 && stateB == 0) {
+    if ((stateA == NULL) && (stateB == NULL)) {
       Assert.assertEquals(pwEst, -1.0, 0.0);
       Assert.assertEquals(stdEst, 0.0, 0.0);
     } else {
@@ -156,7 +162,7 @@ public class PairwiseCornerCasesTest {
     pwTheta = (pwComp != null)? pwComp.getTheta() : 1.0;
     pwEnt = (pwComp != null)? pwComp.getRetainedEntries(true) : 0;
 
-    if (stateA == 0 && stateB == 0) {
+    if ((stateA == NULL) && (stateB == NULL)) {
       Assert.assertEquals(pwEst, -1.0, 0.0);
       Assert.assertEquals(stdEst, 0.0, 0.0);
     } else {
@@ -165,45 +171,6 @@ public class PairwiseCornerCasesTest {
     Assert.assertEquals(pwEmpty, stdEmpty);
     Assert.assertEquals(pwTheta, stdTheta, 0.0);
     Assert.assertEquals(pwEnt, stdEnt);
-  }
-  final static int NULL     = 0;
-  final static int EMPTY    = 1;
-  final static int EXACT    = 2;
-  final static int EST_HEAP = 3;
-  final static int EST_DIR  = 4;
-  final static int EST_HEAP_UNORDERED = 5;
-
-  private static CompactSketch generate(int state, int k) {
-    if (state == NULL) return null;
-    if (state == EMPTY) return Sketches.updateSketchBuilder().build(k).compact(true, null);
-    if (state == EXACT) {
-      UpdateSketch sk = Sketches.updateSketchBuilder().build(k);
-      for (int i = 0; i < k; i++) sk.update(i);
-      return sk.compact(true, null);
-    }
-    if (state == EST_HEAP) {
-      UpdateSketch sk = Sketches.updateSketchBuilder().build(k);
-      for (int i = 0; i < 4*k; i++) sk.update(i);
-      return sk.compact(true, null);
-    }
-    if (state == EST_DIR) {
-      UpdateSketch sk = Sketches.updateSketchBuilder().build(k);
-      for (int i = 0; i < 4 * k; i++) sk.update(i);
-      int bytes = Sketch.getMaxCompactSketchBytes(sk.getRetainedEntries(true));
-      byte[] byteArr = new byte[bytes];
-      NativeMemory mem = new NativeMemory(byteArr);
-      return sk.compact(true, mem);
-    }
-    if (state == EST_HEAP_UNORDERED) {
-      UpdateSketch sk = Sketches.updateSketchBuilder().build(k);
-      for (int i = 0; i < 4 * k; i++) sk.update(i);
-      int bytes = Sketch.getMaxCompactSketchBytes(sk.getRetainedEntries(true));
-      byte[] byteArr = new byte[bytes];
-      NativeMemory mem = new NativeMemory(byteArr);
-      return sk.compact(false, mem);
-    }
-
-    return null;
   }
 
   @Test
@@ -271,6 +238,16 @@ public class PairwiseCornerCasesTest {
     PairwiseSetOperations.union(skHeap, skNull, k);
     PairwiseSetOperations.union(skNull, skDir, k);
     PairwiseSetOperations.union(skDir, skNull, k);
+    PairwiseSetOperations.union(skDir, skEmpty, k);
+    PairwiseSetOperations.union(skEmpty, skDir, k);
+  }
+
+  @Test
+  public void checkDefaultK() {
+    CompactSketch skHeap1 = generate(EST_HEAP, 4096);
+    CompactSketch skHeap2 = generate(EST_HEAP, 4096);
+    PairwiseSetOperations.union(skHeap1, skHeap2);
+    Assert.assertEquals(skHeap1.getEstimate(), skHeap2.getEstimate());
   }
 
   @Test
@@ -283,6 +260,59 @@ public class PairwiseCornerCasesTest {
    */
   static void println(String s) {
     //System.out.println(s); //disable here
+  }
+
+  enum State {NULL, EMPTY, EXACT, EST_HEAP, EST_DIR, EMPTY_THLT0, EST_HEAP_UNORDERED}
+
+  private static CompactSketch generate(State state, int k) {
+    UpdateSketch sk = null;
+    CompactSketch csk = null;
+
+    switch(state) {
+      case NULL : {
+        //already null
+        break;
+      }
+      case EMPTY : {
+        csk = Sketches.updateSketchBuilder().build(k).compact(true, null);
+        break;
+      }
+      case EXACT : {
+        sk = Sketches.updateSketchBuilder().build(k);
+        for (int i = 0; i < k; i++) sk.update(i);
+        csk = sk.compact(true, null);
+        break;
+      }
+      case EST_HEAP : {
+        sk = Sketches.updateSketchBuilder().build(k);
+        for (int i = 0; i < 4*k; i++) sk.update(i);
+        csk = sk.compact(true, null);
+        break;
+      }
+      case EST_DIR : {
+        sk = Sketches.updateSketchBuilder().build(k);
+        for (int i = 0; i < 4 * k; i++) sk.update(i);
+        int bytes = Sketch.getMaxCompactSketchBytes(sk.getRetainedEntries(true));
+        byte[] byteArr = new byte[bytes];
+        NativeMemory mem = new NativeMemory(byteArr);
+        csk = sk.compact(true, mem);
+        break;
+      }
+      case EMPTY_THLT0 : {
+        csk = Sketches.updateSketchBuilder().setP((float)0.5).build(k).compact(true, null);
+        break;
+      }
+      case EST_HEAP_UNORDERED : {
+        sk = Sketches.updateSketchBuilder().build(k);
+        for (int i = 0; i < 4 * k; i++) sk.update(i);
+        int bytes = Sketch.getMaxCompactSketchBytes(sk.getRetainedEntries(true));
+        byte[] byteArr = new byte[bytes];
+        NativeMemory mem = new NativeMemory(byteArr);
+        csk = sk.compact(false, mem);
+        break;
+      }
+    }
+    return csk;
   }
 
 }
