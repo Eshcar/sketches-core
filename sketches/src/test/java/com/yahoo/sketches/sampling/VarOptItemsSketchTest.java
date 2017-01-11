@@ -18,7 +18,6 @@ import com.yahoo.sketches.ArrayOfStringsSerDe;
 import com.yahoo.sketches.Family;
 import com.yahoo.sketches.ResizeFactor;
 import com.yahoo.sketches.SketchesArgumentException;
-import com.yahoo.sketches.hll.Preamble;
 
 public class VarOptItemsSketchTest {
   public static final double EPS = 1e-10;
@@ -154,7 +153,7 @@ public class VarOptItemsSketchTest {
 
     // invalid k < 2
     try {
-      PreambleUtil.insertReservoirSize(memObj, memAddr, 0);
+      PreambleUtil.insertK(memObj, memAddr, 0);
       VarOptItemsSketch.getInstance(mem, new ArrayOfLongsSerDe());
       fail();
     } catch (final SketchesArgumentException e) {
@@ -165,6 +164,8 @@ public class VarOptItemsSketchTest {
   @Test
   public void checkEmptySketch() {
     final VarOptItemsSketch<String> vis = VarOptItemsSketch.getInstance(5);
+    assertEquals(vis.getN(), 0);
+    assertEquals(vis.getNumSamples(), 0);
     assertNull(vis.getSamples());
     assertNull(vis.getSamples(Long.class));
 

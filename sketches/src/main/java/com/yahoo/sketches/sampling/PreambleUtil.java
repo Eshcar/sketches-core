@@ -45,7 +45,7 @@ import com.yahoo.sketches.SketchesArgumentException;
  *  0   ||--------Reservoir Size (K)---------|  Flags | FamID  | SerVer |   Preamble_Longs   |
  *
  *      ||   15   |   14   |   13   |   12   |   11   |   10   |    9   |     8              |
- *  1   ||-----(empty)-----|-------------------Items Seen Count------------------------------|
+ *  1   ||------------------------------Items Seen Count (N)---------------------------------|
  *  </pre>
  *
  * <p><strong>Union:</strong> The reservoir union has fewer internal parameters to track and uses
@@ -67,7 +67,7 @@ import com.yahoo.sketches.SketchesArgumentException;
  * share the same byte ranges, allowing method re-use where practical.</p>
  *
  * <p>An empty varopt sample requires 8 bytes. A non-empty sketch requires 16 bytes of preamble
- * for an under-full sample and otherwise 24 bytes of preamble.</p>
+ * for an under-full sample and otherwise 32 bytes of preamble.</p>
  *
  * <pre>
  * Long || Start Byte Adr:
@@ -76,10 +76,13 @@ import com.yahoo.sketches.SketchesArgumentException;
  *  0   ||--------Reservoir Size (K)---------|  Flags | FamID  | SerVer |   Preamble_Longs   |
  *
  *      ||   15   |   14   |   13   |   12   |   11   |   10   |    9   |     8              |
- *  1   ||---------Item Count in R-----------|-----------Item Count in H---------------------|
+ *  1   ||------------------------------Items Seen Count (N)---------------------------------|
  *
  *      ||   23   |   22   |   21   |   20   |   19   |   18   |   17   |    16              |
- *  2   ||--------------------------------Total Weight in R----------------------------------|
+ *  2   ||---------Item Count in R-----------|-----------Item Count in H---------------------|
+ *
+ *      ||   31   |   30   |   29   |   28   |   27   |   26   |   25   |    24              |
+ *  3   ||--------------------------------Total Weight in R----------------------------------|
  *  </pre>
  *
  *  @author Jon Malkin
@@ -105,16 +108,14 @@ final class PreambleUtil {
   //static final int MAX_K_INT             = 4; // used in Union only
 
   // addresses used in varopt
-  static final int ITEM_COUNT_H_INT      = 8;
-  static final int ITEM_COUNT_R_INT      = 12;
-  static final int TOTAL_WEIGHT_R_DOUBLE = 16;
+  static final int ITEM_COUNT_H_INT      = 16;
+  static final int ITEM_COUNT_R_INT      = 20;
+  static final int TOTAL_WEIGHT_R_DOUBLE = 24;
 
   // flag bit masks
   //static final int BIG_ENDIAN_FLAG_MASK = 1;
   //static final int READ_ONLY_FLAG_MASK  = 2;
   static final int EMPTY_FLAG_MASK      = 4;
-  //static final int COMPACT_FLAG_MASK    = 8;
-  //static final int ORDERED_FLAG_MASK    = 16;
 
   //Other constants
   static final int SER_VER                    = 2;
@@ -165,11 +166,11 @@ final class PreambleUtil {
     //boolean readOnly = (flags & READ_ONLY_FLAG_MASK) > 0;
     final boolean isEmpty = (flags & EMPTY_FLAG_MASK) > 0;
 
-    final int resSize = extractReservoirSize(memObj, memAddr);
+    final int k = extractK(memObj, memAddr);
 
-    long itemsSeen = 0;
+    long n = 0;
     if (!isEmpty) {
-      itemsSeen = extractItemsSeenCount(memObj, memAddr);
+      n = extractN(memObj, memAddr);
     }
 
     final StringBuilder sb = new StringBuilder();
@@ -184,9 +185,9 @@ final class PreambleUtil {
       .append("  (Native Byte Order)         : ").append(nativeOrder).append(LS)
       //.append("  READ_ONLY                   : ").append(readOnly).append(LS)
       .append("  EMPTY                       : ").append(isEmpty).append(LS)
-      .append("Bytes  4-7: Reservoir Size    : ").append(resSize).append(TAB + "(").append(LS);
+      .append("Bytes  4-7: Reservoir Size    : ").append(k).append(TAB + "(").append(LS);
     if (!isEmpty) {
-      sb.append("Bytes 8-13: Items Seen      : ").append(itemsSeen).append(LS);
+      sb.append("Bytes 8-13: Items Seen      : ").append(n).append(LS);
     }
 
     sb.append("Preamble Bytes                : ").append(preLongs << 3).append(LS);
@@ -222,12 +223,12 @@ final class PreambleUtil {
     return unsafe.getShort(memObj, memAddr + RESERVOIR_SIZE_SHORT);
   }
 
-  static int extractReservoirSize(final Object memObj, final long memAddr) {
+  static int extractK(final Object memObj, final long memAddr) {
     return unsafe.getInt(memObj, memAddr + RESERVOIR_SIZE_INT);
   }
 
   static int extractMaxK(final Object memObj, final long memAddr) {
-    return extractReservoirSize(memObj, memAddr);
+    return extractK(memObj, memAddr);
   }
 
   @Deprecated
@@ -235,7 +236,7 @@ final class PreambleUtil {
     return unsafe.getShort(memObj, memAddr + SERDE_ID_SHORT);
   }
 
-  static long extractItemsSeenCount(final Object memObj, final long memAddr) {
+  static long extractN(final Object memObj, final long memAddr) {
     return unsafe.getLong(memObj, memAddr + ITEMS_SEEN_LONG);
   }
 
@@ -278,12 +279,12 @@ final class PreambleUtil {
     unsafe.putByte(memObj, memAddr + FLAGS_BYTE, (byte) flags);
   }
 
-  static void insertReservoirSize(final Object memObj, final long memAddr, final int k) {
+  static void insertK(final Object memObj, final long memAddr, final int k) {
     unsafe.putInt(memObj, memAddr + RESERVOIR_SIZE_INT, k);
   }
 
   static void insertMaxK(final Object memObj, final long memAddr, final int maxK) {
-    insertReservoirSize(memObj, memAddr, maxK);
+    insertK(memObj, memAddr, maxK);
   }
 
   @Deprecated
@@ -291,7 +292,7 @@ final class PreambleUtil {
     unsafe.putShort(memObj, memAddr + SERDE_ID_SHORT, serDeId);
   }
 
-  static void insertItemsSeenCount(final Object memObj, final long memAddr, final long totalSeen) {
+  static void insertN(final Object memObj, final long memAddr, final long totalSeen) {
     unsafe.putLong(memObj, memAddr + ITEMS_SEEN_LONG, totalSeen);
   }
 

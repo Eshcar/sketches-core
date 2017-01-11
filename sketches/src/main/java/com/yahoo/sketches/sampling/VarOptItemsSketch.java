@@ -7,8 +7,9 @@ import static com.yahoo.sketches.sampling.PreambleUtil.TOTAL_WEIGHT_R_DOUBLE;
 import static com.yahoo.sketches.sampling.PreambleUtil.extractFamilyID;
 import static com.yahoo.sketches.sampling.PreambleUtil.extractFlags;
 import static com.yahoo.sketches.sampling.PreambleUtil.extractHRegionItemCount;
+import static com.yahoo.sketches.sampling.PreambleUtil.extractK;
+import static com.yahoo.sketches.sampling.PreambleUtil.extractN;
 import static com.yahoo.sketches.sampling.PreambleUtil.extractRRegionItemCount;
-import static com.yahoo.sketches.sampling.PreambleUtil.extractReservoirSize;
 import static com.yahoo.sketches.sampling.PreambleUtil.extractResizeFactor;
 import static com.yahoo.sketches.sampling.PreambleUtil.extractSerVer;
 import static com.yahoo.sketches.sampling.PreambleUtil.extractTotalRWeight;
@@ -49,12 +50,15 @@ public class VarOptItemsSketch<T> {
   private ArrayList<T> data_;            // stored sampled data
   private ArrayList<Double> weights_;    // weights for sampled data
 
+  private long n_;                       // total number of items processed by the sketch
   private int h_;                        // number of items in heap
   private int m_;                        // number of items in middle region
   private int r_;                        // number of items in reservoir-like area
   private double totalWtR_;              // total weight of items in reservoir-like area
 
-  public class Result {
+  // used to return a shallow copy of the sketch's samples to a VarOptItemsSketchSamples, as arrays
+  // with any null value stripped and the R region weight computed
+  class Result {
     T[] data;
     double[] weights;
   }
@@ -66,6 +70,7 @@ public class VarOptItemsSketch<T> {
     }
 
     k_ = k;
+    n_ = 0;
     rf_ = rf;
 
     h_ = 0;
@@ -89,6 +94,7 @@ public class VarOptItemsSketch<T> {
   private VarOptItemsSketch(final ArrayList<T> dataList,
                             final ArrayList<Double> weightList,
                             final int k,
+                            final long n,
                             final ResizeFactor rf,
                             final int hCount,
                             final int rCount,
@@ -97,6 +103,7 @@ public class VarOptItemsSketch<T> {
     assert weightList != null;
     assert dataList.size() == weightList.size();
     assert k >= 2;
+    assert n >= 0;
     assert hCount >= 0;
     assert rCount >= 0;
     assert (rCount == 0 && dataList.size() == hCount) || (rCount > 0 && dataList.size() == k + 1);
@@ -133,6 +140,7 @@ public class VarOptItemsSketch<T> {
     */
 
     k_ = k;
+    n_ = n;
     h_ = hCount;
     r_ = rCount;
     m_ = 0;
@@ -209,9 +217,11 @@ public class VarOptItemsSketch<T> {
               "Possible Corruption: FamilyID must be " + reqFamilyId + ": " + familyId);
     }
 
-    final int k = extractReservoirSize(memObj, memAddr);
-    if (k < 2) {
-      throw new SketchesArgumentException("Possible Corruption: k must be at least 2: " + k);
+    final int k = extractK(memObj, memAddr);
+
+    final long n = extractN(memObj, memAddr);
+    if (n < 0) {
+      throw new SketchesArgumentException("Possible Corruption: n cannot be negative: " + n);
     }
 
     if (isEmpty) {
@@ -233,7 +243,7 @@ public class VarOptItemsSketch<T> {
     }
 
     double totalRWeight = 0.0;
-    if (numPreLongs == 3) {
+    if (numPreLongs == 4) {
       if (rCount > 0) {
         totalRWeight = extractTotalRWeight(memObj, memAddr);
       } else {
@@ -293,7 +303,7 @@ public class VarOptItemsSketch<T> {
       dataList.addAll(wrappedData.subList(hCount, totalItems));
     }
 
-    return new VarOptItemsSketch<>(dataList, weightList, k, rf, hCount, rCount, totalRWeight);
+    return new VarOptItemsSketch<>(dataList, weightList, k, n, rf, hCount, rCount, totalRWeight);
   }
 
   /**
@@ -304,6 +314,15 @@ public class VarOptItemsSketch<T> {
    */
   public int getK() {
     return k_;
+  }
+
+  /**
+   * Returns the number of items processed from the input stream
+   *
+   * @return n, the number of stream items the sketch has seen
+   */
+  public long getN() {
+    return n_;
   }
 
   /**
@@ -333,6 +352,7 @@ public class VarOptItemsSketch<T> {
     if (item == null) {
       return;
     }
+    ++n_;
 
     if (r_ == 0) {
       updateWarmupPhase(item, weight);
@@ -351,11 +371,11 @@ public class VarOptItemsSketch<T> {
 
   /**
    * Returns a VarOptItemsSketch.Result structure containing the items and weights in separate
-   * arrays. The returned array lengths may be smaller than the total capacity.
+   * lists. The returned list lengths may be smaller than the total capacity.
    *
    * @return A Result object containing items and weights.
    */
-  public Result getSamples() {
+  Result getSamples() {
     if (r_ + h_ == 0) {
       return null;
     }
@@ -367,7 +387,7 @@ public class VarOptItemsSketch<T> {
 
   /**
    * Returns a VarOptItemsSketch.Result structure containing the items and weights in separate
-   * arrays. The returned array lengths may be smaller than the total capacity.
+   * lists. The returned list lengths may be smaller than the total capacity.
    *
    * <p>This method allocates an array of class <em>clazz</em>, which must either match or
    * be parent of T. This method should be used when objects in the array are all instances of T
@@ -377,7 +397,7 @@ public class VarOptItemsSketch<T> {
    * @return A Result object containing items and weights.
    */
   @SuppressWarnings("unchecked")
-  public Result getSamples(final Class<?> clazz) {
+  Result getSamples(final Class<?> clazz) {
     if (r_ + h_ == 0) {
       return null;
     }
@@ -403,6 +423,13 @@ public class VarOptItemsSketch<T> {
     return output;
   }
 
+  /**
+   * Gets a result iterator object.
+   * @return An object with an iterator over the results
+   */
+  public VarOptItemsSketchSamples<T> getResult() {
+    return new VarOptItemsSketchSamples<>(this);
+  }
 
   /**
    * Returns a human-readable summary of the sketch.
@@ -483,17 +510,17 @@ public class VarOptItemsSketch<T> {
     } else {
       PreambleUtil.insertFlags(memObj, memAddr, 0);
     }
-    PreambleUtil.insertReservoirSize(memObj, memAddr, k_);                // Bytes 4-7
+    PreambleUtil.insertK(memObj, memAddr, k_);                            // Bytes 4-7
+    PreambleUtil.insertN(memObj, memAddr, n_);                            // Bytes 8-15
 
     if (!empty) {
-      PreambleUtil.insertHRegionItemCount(memObj, memAddr, h_);
-      PreambleUtil.insertRRegionItemCount(memObj, memAddr, r_);
+      PreambleUtil.insertHRegionItemCount(memObj, memAddr, h_);           // Bytes 16-19
+      PreambleUtil.insertRRegionItemCount(memObj, memAddr, r_);           // Bytes 20-23
       if (r_ > 0) {
-        PreambleUtil.insertTotalRWeight(memObj, memAddr, totalWtR_);
+        PreambleUtil.insertTotalRWeight(memObj, memAddr, totalWtR_);      // Bytes 24-31
       }
 
       // write the first h_ weights
-      //final int preBytes = preLongs << 3;
       int offset = preLongs << 3;
       for (int i = 0; i < h_; ++i) {
         mem.putDouble(offset, weights_.get(i));
@@ -505,6 +532,28 @@ public class VarOptItemsSketch<T> {
     }
 
     return outArr;
+  }
+
+  // package-private: Relies on ArrayList for bounds checking and assumes caller knows how to handle
+  // a null from the middle of the list
+  T getItem(final int idx) {
+    return data_.get(idx);
+  }
+
+  // package-private: Relies on ArrayList for bounds checking and assumes caller knows how to handle
+  // a negative value (whether from the null in the middle or an R-region item)
+  double getWeight(final int idx) {
+    return weights_.get(idx);
+  }
+
+  // Makes iterator more efficient
+  int getHRegionCount() {
+    return h_;
+  }
+
+  // Needed by result object
+  double getRRegionWeight() {
+    return r_ == 0 ? Double.NaN : (totalWtR_ / r_);
   }
 
   /* In the "pseudo-light" case the new item has weight <= old_tau, so

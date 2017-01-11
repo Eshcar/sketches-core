@@ -5,8 +5,8 @@ import static com.yahoo.sketches.sampling.PreambleUtil.EMPTY_FLAG_MASK;
 import static com.yahoo.sketches.sampling.PreambleUtil.SER_VER;
 import static com.yahoo.sketches.sampling.PreambleUtil.extractFamilyID;
 import static com.yahoo.sketches.sampling.PreambleUtil.extractFlags;
-import static com.yahoo.sketches.sampling.PreambleUtil.extractItemsSeenCount;
-import static com.yahoo.sketches.sampling.PreambleUtil.extractReservoirSize;
+import static com.yahoo.sketches.sampling.PreambleUtil.extractN;
+import static com.yahoo.sketches.sampling.PreambleUtil.extractK;
 import static com.yahoo.sketches.sampling.PreambleUtil.extractResizeFactor;
 import static com.yahoo.sketches.sampling.PreambleUtil.extractSerVer;
 import static com.yahoo.sketches.sampling.PreambleUtil.getAndCheckPreLongs;
@@ -219,14 +219,14 @@ public final class ReservoirItemsSketch<T> {
               "Possible Corruption: FamilyID must be " + reqFamilyId + ": " + familyId);
     }
 
-    final int k = extractReservoirSize(memObj, memAddr);
+    final int k = extractK(memObj, memAddr);
 
     if (isEmpty) {
       return new ReservoirItemsSketch<>(k, rf);
     }
 
     // get rest of preamble
-    final long itemsSeen = extractItemsSeenCount(memObj, memAddr);
+    final long itemsSeen = extractN(memObj, memAddr);
 
     final int preLongBytes = numPreLongs << 3;
     int allocatedItems = k; // default to full reservoir
@@ -365,7 +365,7 @@ public final class ReservoirItemsSketch<T> {
    *
    * @return The raw array backing this reservoir.
    */
-  public ArrayList<T> getRawSamplesAsList() {
+  ArrayList<T> getRawSamplesAsList() {
     return data_;
   }
 
@@ -444,11 +444,11 @@ public final class ReservoirItemsSketch<T> {
     } else {
       PreambleUtil.insertFlags(memObj, memAddr,0);
     }
-    PreambleUtil.insertReservoirSize(memObj, memAddr, reservoirSize_);       // Bytes 4-7
+    PreambleUtil.insertK(memObj, memAddr, reservoirSize_);       // Bytes 4-7
 
     // conditional elements
     if (!empty) {
-      PreambleUtil.insertItemsSeenCount(memObj, memAddr, itemsSeen_);
+      PreambleUtil.insertN(memObj, memAddr, itemsSeen_);
 
       // insert the bytearray of serialized samples, offset by the preamble size
       final int preBytes = preLongs << 3;

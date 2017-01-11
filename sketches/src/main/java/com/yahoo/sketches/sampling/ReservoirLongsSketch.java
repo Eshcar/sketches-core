@@ -5,8 +5,8 @@ import static com.yahoo.sketches.sampling.PreambleUtil.EMPTY_FLAG_MASK;
 import static com.yahoo.sketches.sampling.PreambleUtil.FAMILY_BYTE;
 import static com.yahoo.sketches.sampling.PreambleUtil.SER_VER;
 import static com.yahoo.sketches.sampling.PreambleUtil.extractFlags;
-import static com.yahoo.sketches.sampling.PreambleUtil.extractItemsSeenCount;
-import static com.yahoo.sketches.sampling.PreambleUtil.extractReservoirSize;
+import static com.yahoo.sketches.sampling.PreambleUtil.extractK;
+import static com.yahoo.sketches.sampling.PreambleUtil.extractN;
 import static com.yahoo.sketches.sampling.PreambleUtil.extractResizeFactor;
 import static com.yahoo.sketches.sampling.PreambleUtil.extractSerVer;
 import static com.yahoo.sketches.sampling.PreambleUtil.getAndCheckPreLongs;
@@ -196,14 +196,14 @@ public final class ReservoirLongsSketch {
       }
     }
 
-    final int k = extractReservoirSize(memObj, memAddr);
+    final int k = extractK(memObj, memAddr);
 
     if (isEmpty) {
       return new ReservoirLongsSketch(k, rf);
     }
 
     // get rest of preamble
-    final long itemsSeen = extractItemsSeenCount(memObj, memAddr);
+    final long itemsSeen = extractN(memObj, memAddr);
 
     final int preLongBytes = numPreLongs << 3;
     final int numSketchLongs = (int) Math.min(itemsSeen, k);
@@ -367,11 +367,11 @@ public final class ReservoirLongsSketch {
     } else {
       PreambleUtil.insertFlags(memObj, memAddr, 0);
     }
-    PreambleUtil.insertReservoirSize(memObj, memAddr, reservoirSize_);      // Bytes 4-7
+    PreambleUtil.insertK(memObj, memAddr, reservoirSize_);      // Bytes 4-7
 
     if (!empty) {
       // second preLong, only if non-empty
-      PreambleUtil.insertItemsSeenCount(memObj, memAddr, itemsSeen_);
+      PreambleUtil.insertN(memObj, memAddr, itemsSeen_);
 
       // insert the serialized samples, offset by the preamble size
       final int preBytes = preLongs << 3;
