@@ -125,7 +125,7 @@ public class HeapIntersectionTest {
     assertEquals(result, 2048.0, sd2err);
   }
 
-  //Calling getResult on a virgin Intersect is illegal
+  //Calling getSketchSamples on a virgin Intersect is illegal
   @Test(expectedExceptions = SketchesStateException.class)
   public void checkNoCall() {
     Intersection inter = SetOperation.builder().buildIntersection();

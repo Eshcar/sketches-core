@@ -14,7 +14,7 @@ import com.yahoo.memory.Memory;
  * <pre><code>
  * AnotB aNotB = SetOperationBuilder.buildAnotB();
  * aNotB.update(SketchA, SketchB); //Called only once.
- * CompactSketch result = aNotB.getResult();
+ * CompactSketch result = aNotB.getSketchSamples();
  * </code></pre>
  *
  * <p>Calling the update function a second time essentially clears the internal state and updates

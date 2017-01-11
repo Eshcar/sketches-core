@@ -50,7 +50,7 @@ public enum Family {
    * The are read-only and cannot be updated, but can participate in any of the Set Operations.
    * The compact sketches are never created directly with a constructor or Builder.
    * Instead they are created as a result of the compact()
-   * method of an UpdateSketch or as a result of a getResult() of a SetOperation.
+   * method of an UpdateSketch or as a result of a getSketchSamples() of a SetOperation.
    */
   COMPACT(3, "Compact", 1, 3),
 

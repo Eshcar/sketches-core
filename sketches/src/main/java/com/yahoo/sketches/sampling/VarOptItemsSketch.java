@@ -56,7 +56,7 @@ public class VarOptItemsSketch<T> {
   private int r_;                        // number of items in reservoir-like area
   private double totalWtR_;              // total weight of items in reservoir-like area
 
-  // used to return a shallow copy of the sketch's samples to a VarOptItemsSketchSamples, as arrays
+  // used to return a shallow copy of the sketch's samples to a VarOptItemsSamples, as arrays
   // with any null value stripped and the R region weight computed
   class Result {
     T[] data;
@@ -370,65 +370,11 @@ public class VarOptItemsSketch<T> {
   }
 
   /**
-   * Returns a VarOptItemsSketch.Result structure containing the items and weights in separate
-   * lists. The returned list lengths may be smaller than the total capacity.
-   *
-   * @return A Result object containing items and weights.
-   */
-  Result getSamples() {
-    if (r_ + h_ == 0) {
-      return null;
-    }
-
-    final int validIndex = (h_ == 0 ? 1 : 0);
-    final Class<?> clazz = data_.get(validIndex).getClass();
-    return getSamples(clazz);
-  }
-
-  /**
-   * Returns a VarOptItemsSketch.Result structure containing the items and weights in separate
-   * lists. The returned list lengths may be smaller than the total capacity.
-   *
-   * <p>This method allocates an array of class <em>clazz</em>, which must either match or
-   * be parent of T. This method should be used when objects in the array are all instances of T
-   * but are not necessarily instances of the base class.</p>
-   *
-   * @param clazz A class to which the items are cast before returning
-   * @return A Result object containing items and weights.
-   */
-  @SuppressWarnings("unchecked")
-  Result getSamples(final Class<?> clazz) {
-    if (r_ + h_ == 0) {
-      return null;
-    }
-
-    // are 2 Array.asList(data_.subList()) copies better?
-    final T[] prunedItems = (T[]) Array.newInstance(clazz, getNumSamples());
-    final double[] prunedWeights = new double[getNumSamples()];
-    int j = 0;
-    final double rWeight = totalWtR_ / r_;
-    for (int i = 0; i < data_.size(); ++i) {
-      final T item = data_.get(i);
-      if (item != null) {
-        prunedItems[j] = item;
-        prunedWeights[j] = (weights_.get(i) > 0 ? weights_.get(i) : rWeight);
-        ++j;
-      }
-    }
-
-    final Result output = new Result();
-    output.data = prunedItems;
-    output.weights = prunedWeights;
-
-    return output;
-  }
-
-  /**
    * Gets a result iterator object.
    * @return An object with an iterator over the results
    */
-  public VarOptItemsSketchSamples<T> getResult() {
-    return new VarOptItemsSketchSamples<>(this);
+  public VarOptItemsSamples<T> getSketchSamples() {
+    return new VarOptItemsSamples<>(this);
   }
 
   /**
@@ -532,6 +478,60 @@ public class VarOptItemsSketch<T> {
     }
 
     return outArr;
+  }
+
+  /**
+   * Returns a VarOptItemsSketch.Result structure containing the items and weights in separate
+   * lists. The returned list lengths may be smaller than the total capacity.
+   *
+   * @return A Result object containing items and weights.
+   */
+  Result getSamplesAsArrays() {
+    if (r_ + h_ == 0) {
+      return null;
+    }
+
+    final int validIndex = (h_ == 0 ? 1 : 0);
+    final Class<?> clazz = data_.get(validIndex).getClass();
+    return getSamplesAsArrays(clazz);
+  }
+
+  /**
+   * Returns a VarOptItemsSketch.Result structure containing the items and weights in separate
+   * lists. The returned list lengths may be smaller than the total capacity.
+   *
+   * <p>This method allocates an array of class <em>clazz</em>, which must either match or
+   * be parent of T. This method should be used when objects in the array are all instances of T
+   * but are not necessarily instances of the base class.</p>
+   *
+   * @param clazz A class to which the items are cast before returning
+   * @return A Result object containing items and weights.
+   */
+  @SuppressWarnings("unchecked")
+  Result getSamplesAsArrays(final Class<?> clazz) {
+    if (r_ + h_ == 0) {
+      return null;
+    }
+
+    // are 2 Array.asList(data_.subList()) copies better?
+    final T[] prunedItems = (T[]) Array.newInstance(clazz, getNumSamples());
+    final double[] prunedWeights = new double[getNumSamples()];
+    int j = 0;
+    final double rWeight = totalWtR_ / r_;
+    for (int i = 0; i < data_.size(); ++i) {
+      final T item = data_.get(i);
+      if (item != null) {
+        prunedItems[j] = item;
+        prunedWeights[j] = (weights_.get(i) > 0 ? weights_.get(i) : rWeight);
+        ++j;
+      }
+    }
+
+    final Result output = new Result();
+    output.data = prunedItems;
+    output.weights = prunedWeights;
+
+    return output;
   }
 
   // package-private: Relies on ArrayList for bounds checking and assumes caller knows how to handle

@@ -14,7 +14,7 @@ public class ArrayOfDoublesAnotBTest {
 
   @Test
   public void nullOrEmptyInput() {
-    // calling getResult() before calling update() should yield an empty set
+    // calling getSketchSamples() before calling update() should yield an empty set
     ArrayOfDoublesAnotB aNotB = new ArrayOfDoublesSetOperationBuilder().buildAnotB();
     ArrayOfDoublesCompactSketch result = aNotB.getResult();
     Assert.assertTrue(result.isEmpty());

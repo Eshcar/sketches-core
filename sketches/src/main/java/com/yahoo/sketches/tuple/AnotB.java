@@ -29,7 +29,7 @@ public final class AnotB<S extends Summary> {
    * Perform A-and-not-B set operation on the two given sketches.
    * A null sketch is interpreted as an empty sketch.
    * This is not an accumulating update. Calling update() more than once
-   * without calling getResult() will discard the result of previous update()
+   * without calling getSketchSamples() will discard the result of previous update()
    *
    * @param a The incoming sketch for the first argument
    * @param b The incoming sketch for the second argument

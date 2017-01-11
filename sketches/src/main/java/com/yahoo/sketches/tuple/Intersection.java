@@ -102,7 +102,7 @@ public class Intersection<S extends Summary> {
   public CompactSketch<S> getResult() {
     if (isFirstCall_) {
       throw new SketchesStateException(
-        "getResult() with no intervening intersections is not a legal result.");
+        "getSketchSamples() with no intervening intersections is not a legal result.");
     }
     if (sketch_ == null) {
       return new CompactSketch<S>(null, null, theta_, isEmpty_);

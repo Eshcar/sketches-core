@@ -444,7 +444,7 @@ public class UpdatableSketchWithDoubleSummaryTest {
   @Test
   public void aNotBEmpty() {
     AnotB<DoubleSummary> aNotB = new AnotB<DoubleSummary>();
-    // calling getResult() before calling update() should yield an empty set
+    // calling getSketchSamples() before calling update() should yield an empty set
     CompactSketch<DoubleSummary> result = aNotB.getResult();
     Assert.assertEquals(result.getRetainedEntries(), 0);
     Assert.assertTrue(result.isEmpty());

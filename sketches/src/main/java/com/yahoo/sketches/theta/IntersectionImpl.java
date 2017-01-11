@@ -343,7 +343,7 @@ final class IntersectionImpl extends SetOperation implements Intersection {
   public CompactSketch getResult(final boolean dstOrdered, final Memory dstMem) {
     if (curCount_ < 0) {
       throw new SketchesStateException(
-          "Calling getResult() with no intervening intersections is not a legal result.");
+          "Calling getSketchSamples() with no intervening intersections is not a legal result.");
     }
     long[] compactCacheR;
 

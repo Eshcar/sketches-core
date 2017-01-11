@@ -6,8 +6,8 @@ import java.util.Iterator;
 /**
  * @author Jon Malkin
  */
-public class VarOptItemsSketchSamples<T> implements
-        Iterable<VarOptItemsSketchSamples<T>.WeightedSample> {
+public class VarOptItemsSamples<T> implements
+        Iterable<VarOptItemsSamples<T>.WeightedSample> {
 
   private final VarOptItemsSketch<T> sketch_;
   private VarOptItemsSketch.Result sampleLists;
@@ -61,7 +61,7 @@ public class VarOptItemsSketchSamples<T> implements
     }
   }
 
-  VarOptItemsSketchSamples(final VarOptItemsSketch<T> sketch) {
+  VarOptItemsSamples(final VarOptItemsSketch<T> sketch) {
     sketch_ = sketch;
     n_ = sketch.getN();
     h_ = sketch.getHRegionCount();
@@ -74,13 +74,13 @@ public class VarOptItemsSketchSamples<T> implements
   }
 
   public void setClass(final Class clazz) {
-    sampleLists = sketch_.getSamples(clazz);
+    sampleLists = sketch_.getSamplesAsArrays(clazz);
   }
 
   @SuppressWarnings("unchecked")
   public T[] items() {
     if (sampleLists == null) {
-      sampleLists = sketch_.getSamples();
+      sampleLists = sketch_.getSamplesAsArrays();
     }
 
     return (sampleLists == null ? null : (T[]) sampleLists.data);
@@ -89,7 +89,7 @@ public class VarOptItemsSketchSamples<T> implements
   @SuppressWarnings("unchecked")
   public T items(final int i) {
     if (sampleLists == null) {
-      sampleLists = sketch_.getSamples();
+      sampleLists = sketch_.getSamplesAsArrays();
     }
 
     return (sampleLists == null ? null : (T) sampleLists.data[i]);
@@ -97,7 +97,7 @@ public class VarOptItemsSketchSamples<T> implements
 
   public double[] weights() {
     if (sampleLists == null) {
-      sampleLists = sketch_.getSamples();
+      sampleLists = sketch_.getSamplesAsArrays();
     }
 
     return (sampleLists == null ? null : sampleLists.weights);
@@ -105,7 +105,7 @@ public class VarOptItemsSketchSamples<T> implements
 
   public double weights(final int i) {
     if (sampleLists == null) {
-      sampleLists = sketch_.getSamples();
+      sampleLists = sketch_.getSamplesAsArrays();
     }
 
     return (sampleLists == null ? Double.NaN : sampleLists.weights[i]);
@@ -117,8 +117,8 @@ public class VarOptItemsSketchSamples<T> implements
       vis.update(i, 1.0 * i);
     }
 
-    final VarOptItemsSketchSamples<Long> result = vis.getResult();
-    for (VarOptItemsSketchSamples.WeightedSample ws : result) {
+    final VarOptItemsSamples<Long> result = vis.getSketchSamples();
+    for (VarOptItemsSamples.WeightedSample ws : result) {
       System.out.println(ws.getItem() + ":\t" + ws.getWeight());
     }
   }

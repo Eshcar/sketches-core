@@ -97,7 +97,7 @@ public abstract class ArrayOfDoublesIntersection {
   public ArrayOfDoublesCompactSketch getResult(final Memory dstMem) {
     if (isFirstCall_) {
       throw new SketchesStateException(
-          "getResult() with no intervening intersections is not a legal result.");
+          "getSketchSamples() with no intervening intersections is not a legal result.");
     }
     if (sketch_ == null) {
       return new HeapArrayOfDoublesCompactSketch(

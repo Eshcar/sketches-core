@@ -139,7 +139,7 @@ public class DirectIntersectionTest {
     println(""+rsk1.getEstimate());
   }
 
-  //Calling getResult on a virgin Intersect is illegal
+  //Calling getSketchSamples on a virgin Intersect is illegal
   @Test(expectedExceptions = SketchesStateException.class)
   public void checkNoCall() {
     int lgK = 9;

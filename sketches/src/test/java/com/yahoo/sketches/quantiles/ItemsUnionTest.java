@@ -57,7 +57,7 @@ public class ItemsUnionTest {
     Assert.assertNull(result.getMinValue());
     Assert.assertNull(result.getMaxValue());
 
-    // internal sketch is not null again because getResult() instantiated it
+    // internal sketch is not null again because getSketchSamples() instantiated it
     union.update(ItemsSketch.getInstance(Comparator.naturalOrder()));
     result = union.getResult();
     Assert.assertTrue(result.isEmpty());

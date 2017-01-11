@@ -17,7 +17,7 @@ import com.yahoo.sketches.SketchesArgumentException;
 
 /**
  * CompactSketches are never created directly. They are created as a result of
- * the compact() method of an UpdatableSketch or as a result of the getResult()
+ * the compact() method of an UpdatableSketch or as a result of the getSketchSamples()
  * method of a set operation like Union, Intersection or AnotB. CompactSketch
  * consists of a compact list (i.e. no intervening spaces) of hash values,
  * corresponding list of Summaries, and a value for theta. The lists may or may

@@ -166,8 +166,8 @@ public class VarOptItemsSketchTest {
     final VarOptItemsSketch<String> vis = VarOptItemsSketch.getInstance(5);
     assertEquals(vis.getN(), 0);
     assertEquals(vis.getNumSamples(), 0);
-    assertNull(vis.getSamples());
-    assertNull(vis.getSamples(Long.class));
+    assertNull(vis.getSamplesAsArrays());
+    assertNull(vis.getSamplesAsArrays(Long.class));
 
     final byte[] sketchBytes = vis.toByteArray(new ArrayOfStringsSerDe());
     final Memory mem = new NativeMemory(sketchBytes);
@@ -261,7 +261,7 @@ public class VarOptItemsSketchTest {
       sketch.update(i, w);
     }
 
-    final VarOptItemsSketch.Result samples = sketch.getSamples();
+    final VarOptItemsSketch.Result samples = sketch.getSamplesAsArrays();
     final double[] weights = samples.weights;
     double outputSum = 0;
     for (double w : weights) {
@@ -322,7 +322,7 @@ public class VarOptItemsSketchTest {
     assertEquals(sketch.getNumSamples(), 32);
 
     // first 2 entries should be heavy and in heap order (smallest at root)
-    final VarOptItemsSketch.Result result = sketch.getSamples();
+    final VarOptItemsSketch.Result result = sketch.getSamplesAsArrays();
     assertTrue(result.weights[0] == 100.0);
     assertTrue(result.weights[1] == 101.0);
 
@@ -347,7 +347,7 @@ public class VarOptItemsSketchTest {
 
     // checking weight[0], assuming all k items are unweighted (and consequently in R)
     // Expected: (k + 2) / |R| = (k+2) / k
-    final VarOptItemsSketch.Result result = sketch.getSamples();
+    final VarOptItemsSketch.Result result = sketch.getSamplesAsArrays();
     final double wtDiff = result.weights[0] - 1.0 * (k + 2) / k;
     assertTrue(Math.abs(wtDiff) < EPS);
   }
@@ -368,7 +368,7 @@ public class VarOptItemsSketchTest {
       sketch.update(-i, k + (i * wtScale));
     }
 
-    final VarOptItemsSketch.Result result = sketch.getSamples();
+    final VarOptItemsSketch.Result result = sketch.getSamplesAsArrays();
 
     // Don't know which R item is left, but should be only one at the end of the array
     // Expected: k+1 + (min "heavy" item) / |R| = ((k+1) + (k+wtScale)) / 1 = wtScale + 2k + 1
@@ -399,8 +399,8 @@ public class VarOptItemsSketchTest {
     assertEquals(s1.getNumSamples(), s2.getNumSamples(), "Sketches have different sample counts");
 
     final int len = s1.getNumSamples();
-    final VarOptItemsSketch.Result r1 = s1.getSamples();
-    final VarOptItemsSketch.Result r2 = s2.getSamples();
+    final VarOptItemsSketch.Result r1 = s1.getSamplesAsArrays();
+    final VarOptItemsSketch.Result r2 = s2.getSamplesAsArrays();
 
     for (int i = 0; i < len; ++i) {
       assertEquals(r1.data[i], r2.data[i], "Data values differ at sample " + i);

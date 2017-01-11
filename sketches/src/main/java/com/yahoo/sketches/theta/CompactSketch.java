@@ -25,7 +25,7 @@ import com.yahoo.sketches.SketchesArgumentException;
 /**
  * The parent class of all the CompactSketches. CompactSketches are never created directly.
  * They are created as a result of the compact() method of an UpdateSketch or as a result of a
- * getResult() of a SetOperation.
+ * getSketchSamples() of a SetOperation.
  *
  * <p>A CompactSketch is the simplist form of a Theta Sketch. It consists of a compact list
  * (i.e., no intervening spaces) of hash values, which may be ordered or not, a value for theta
