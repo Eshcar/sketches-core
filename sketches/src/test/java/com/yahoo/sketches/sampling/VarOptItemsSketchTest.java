@@ -295,8 +295,6 @@ public class VarOptItemsSketchTest {
     double outputSum = 0;
     for (VarOptItemsSamples<Long>.WeightedSample ws : samples) {
       outputSum += ws.getWeight();
-      final Long data = ws.getItem();
-      assertTrue(data >= 0 && data < n);
     }
 
     final double wtRatio = outputSum / inputSum;
@@ -380,10 +378,10 @@ public class VarOptItemsSketchTest {
     final VarOptItemsSketch<Long> sketch = getUnweightedLongsVIS(k, k + 1);
     sketch.update(0L, 1.0); // k+2-nd update
 
-    // checking weight[0], assuming all k items are unweighted (and consequently in R)
+    // checking weights(0), assuming all k items are unweighted (and consequently in R)
     // Expected: (k + 2) / |R| = (k+2) / k
-    final VarOptItemsSketch.Result result = sketch.getSamplesAsArrays();
-    final double wtDiff = result.weights[0] - 1.0 * (k + 2) / k;
+    final VarOptItemsSamples<Long> samples = sketch.getSketchSamples();
+    final double wtDiff = samples.weights(0) - 1.0 * (k + 2) / k;
     assertTrue(Math.abs(wtDiff) < EPS);
   }
 
@@ -421,7 +419,7 @@ public class VarOptItemsSketchTest {
      sketch that has just reached the sampling phase, so that the next update() is handled by
      one of the non-warmup routes.
    */
-  private VarOptItemsSketch<Long> getUnweightedLongsVIS(final int k, final int n) {
+  static VarOptItemsSketch<Long> getUnweightedLongsVIS(final int k, final int n) {
     final VarOptItemsSketch<Long> sketch = VarOptItemsSketch.getInstance(k);
     for (long i = 0; i < n; ++i) {
       sketch.update(i, 1.0);
