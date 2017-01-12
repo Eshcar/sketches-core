@@ -1,3 +1,8 @@
+/*
+ * Copyright 2016-17, Yahoo! Inc.
+ * Licensed under the terms of the Apache License 2.0. See LICENSE file at the project root for terms.
+ */
+
 package com.yahoo.sketches.sampling;
 
 import static com.yahoo.sketches.Util.LS;
@@ -31,9 +36,18 @@ import com.yahoo.sketches.SketchesArgumentException;
 import com.yahoo.sketches.Util;
 
 /**
+ * This sketch provides a variance optimal sample over an input stream of weighted items. The
+ * sketch can be used to compute subset sums over predicates with probabilistic bounded accuracy.
+ *
+ * <p>Using this sketch with uniformly constant item weights (e.g. 1.0) will produce a standard
+ * reservoir sample over the steam.</p>
+ *
+ * @param <T> The type of object held in the sketch.
+ *
  * @author Jon Malkin
+ * @author Kevin Lang
  */
-public class VarOptItemsSketch<T> {
+public final class VarOptItemsSketch<T> {
   /**
    * The smallest sampling array allocated: 16
    */
@@ -47,8 +61,8 @@ public class VarOptItemsSketch<T> {
   private final int k_;                  // max size of sketch, in items
   private int currItemsAlloc_;           // currently allocated array size
   private final ResizeFactor rf_;        // resize factor
-  private ArrayList<T> data_;            // stored sampled data
-  private ArrayList<Double> weights_;    // weights for sampled data
+  private ArrayList<T> data_;            // stored sampled items
+  private ArrayList<Double> weights_;    // weights for sampled items
 
   private long n_;                       // total number of items processed by the sketch
   private int h_;                        // number of items in heap
@@ -59,7 +73,7 @@ public class VarOptItemsSketch<T> {
   // used to return a shallow copy of the sketch's samples to a VarOptItemsSamples, as arrays
   // with any null value stripped and the R region weight computed
   class Result {
-    T[] data;
+    T[] items;
     double[] weights;
   }
 
@@ -110,13 +124,13 @@ public class VarOptItemsSketch<T> {
     /* These conditions can never be triggered in this constructor if the only route to this code
        is through getInstance(Memory, SerDe)
     if (dataList == null) {
-      throw new SketchesArgumentException("Instantiating sketch with null data item list");
+      throw new SketchesArgumentException("Instantiating sketch with null items item list");
     }
     if (weightList == null) {
       throw new SketchesArgumentException("Instantiating sketch with null weight list");
     }
     if (dataList.size() != weightList.size()) {
-      throw new SketchesArgumentException("data and weight list lengths must match. data: "
+      throw new SketchesArgumentException("items and weight list lengths must match. items: "
               + dataList.size() + ", weights: " + weightList.size());
     }
     if (hCount < 0 || rCount < 0) {
@@ -134,7 +148,7 @@ public class VarOptItemsSketch<T> {
     } else { // rCount > 0
       if (dataList.size() != k + 1) {
         throw new SketchesArgumentException("Sketch in sampling mode must have array of k+1 "
-                + "elements. k+1 = " + (k + 1) + ", data length = " + dataList.size());
+                + "elements. k+1 = " + (k + 1) + ", items length = " + dataList.size());
       }
     }
     */
@@ -200,12 +214,13 @@ public class VarOptItemsSketch<T> {
     final boolean isEmpty = (extractFlags(memObj, memAddr) & EMPTY_FLAG_MASK) != 0;
 
     // Check values
-    if (numPreLongs < Family.VAROPT.getMinPreLongs()
-            || numPreLongs > Family.VAROPT.getMaxPreLongs()) {
+    if (numPreLongs != Family.VAROPT.getMinPreLongs()
+            && numPreLongs != Family.VAROPT.getMaxPreLongs()
+            && numPreLongs != PreambleUtil.VO_WARMUP_PRELONGS) {
       throw new SketchesArgumentException(
-              "Possible corruption: Must have between " + Family.VAROPT.getMinPreLongs()
-                      + " and " + Family.VAROPT.getMaxPreLongs() + " preLongs;"
-                      + " Found: " + numPreLongs);
+              "Possible corruption: Must have " + Family.VAROPT.getMinPreLongs()
+                      + ", " + PreambleUtil.VO_WARMUP_PRELONGS + ", or "
+                      + Family.VAROPT.getMaxPreLongs() + " preLongs. Found: " + numPreLongs);
     }
     if (serVer != SER_VER) {
         throw new SketchesArgumentException(
@@ -218,6 +233,9 @@ public class VarOptItemsSketch<T> {
     }
 
     final int k = extractK(memObj, memAddr);
+    if (k < 2) {
+      throw new SketchesArgumentException("Possible Corruption: k must be at least 2: " + k);
+    }
 
     final long n = extractN(memObj, memAddr);
     if (n < 0) {
@@ -225,7 +243,7 @@ public class VarOptItemsSketch<T> {
     }
 
     if (isEmpty) {
-      assert numPreLongs == 1;
+      assert numPreLongs == Family.VAROPT.getMinPreLongs();
       return new VarOptItemsSketch<>(k, rf);
     }
 
@@ -243,12 +261,13 @@ public class VarOptItemsSketch<T> {
     }
 
     double totalRWeight = 0.0;
-    if (numPreLongs == 4) {
+    if (numPreLongs == Family.VAROPT.getMaxPreLongs()) {
       if (rCount > 0) {
         totalRWeight = extractTotalRWeight(memObj, memAddr);
       } else {
         throw new SketchesArgumentException(
-                "Possible Corruption: 3 preLongs but no items in R region");
+                "Possible Corruption: "
+                        + Family.VAROPT.getMaxPreLongs() + " preLongs but no items in R region");
       }
     }
 
@@ -430,13 +449,13 @@ public class VarOptItemsSketch<T> {
   public byte[] toByteArray(final ArrayOfItemsSerDe<? super T> serDe, final Class<?> clazz) {
     final int preLongs, outBytes;
     final boolean empty = r_ == 0 && h_ == 0;
-    byte[] bytes = null; // for serialized data from serDe
+    byte[] bytes = null; // for serialized items from serDe
 
     if (empty) {
-      preLongs = 1;
-      outBytes = 8;
+      preLongs = Family.VAROPT.getMinPreLongs();
+      outBytes = Family.VAROPT.getMinPreLongs() << 3; // only contains the minimum header info
     } else {
-      preLongs = (r_ == 0 ? 2 : Family.VAROPT.getMaxPreLongs());
+      preLongs = (r_ == 0 ? PreambleUtil.VO_WARMUP_PRELONGS : Family.VAROPT.getMaxPreLongs());
       bytes = serDe.serializeToByteArray(getDataSamples(clazz));
       outBytes = (preLongs << 3) + (h_ * Double.BYTES) + bytes.length;
     }
@@ -473,7 +492,7 @@ public class VarOptItemsSketch<T> {
         offset += Double.BYTES;
       }
 
-      // write the data items, using offset from earlier
+      // write the items items, using offset from earlier
       mem.putByteArray(offset, bytes, 0, bytes.length);
     }
 
@@ -528,7 +547,7 @@ public class VarOptItemsSketch<T> {
     }
 
     final Result output = new Result();
-    output.data = prunedItems;
+    output.items = prunedItems;
     output.weights = prunedWeights;
 
     return output;
@@ -905,9 +924,9 @@ public class VarOptItemsSketch<T> {
   }
 
   /**
-   * Increases allocated sampling size by (adjusted) ResizeFactor and copies data from old
+   * Increases allocated sampling size by (adjusted) ResizeFactor and copies items from old
    * sampling. Only happens when buffer is not full, so don't need to worry about blindly copying
-   * the array data.
+   * the array items.
    */
   private void growDataArrays() {
     currItemsAlloc_ = SamplingUtil.getAdjustedSize(k_, currItemsAlloc_ << rf_.lg());

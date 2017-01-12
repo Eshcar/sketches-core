@@ -55,7 +55,7 @@ public final class ReservoirLongsSketch {
   private int currItemsAlloc_;         // currently allocated array size
   private long itemsSeen_;             // number of items presented to sketch
   private final ResizeFactor rf_;      // resize factor
-  private long[] data_;                // stored sampling data
+  private long[] data_;                // stored sampling items
 
   /**
    * The basic constructor for building an empty sketch.
@@ -85,9 +85,9 @@ public final class ReservoirLongsSketch {
 
   /**
    * Creates a fully-populated sketch. Used internally to avoid extraneous array allocation when
-   * deserializing. Uses size of data array to as initial array allocation.
+   * deserializing. Uses size of items array to as initial array allocation.
    *
-   * @param data Reservoir data as long[]
+   * @param data Reservoir items as long[]
    * @param itemsSeen Number of items presented to the sketch so far
    * @param rf <a href="{@docRoot}/resources/dictionary.html#resizeFactor">See Resize Factor</a>
    * @param k Maximum reservoir size
@@ -110,7 +110,7 @@ public final class ReservoirLongsSketch {
         || (itemsSeen < k && data.length < itemsSeen)) {
       throw new SketchesArgumentException("Instantiating sketch with too few samples. "
           + "Items seen: " + itemsSeen + ", max reservoir size: " + k + ", "
-          + "data array length: " + data.length);
+          + "items array length: " + data.length);
     }
 
     // TODO: compute target current allocation to validate?
@@ -126,7 +126,7 @@ public final class ReservoirLongsSketch {
    * Used with copy().
    *
    * @param k Maximum reservoir capacity
-   * @param currItemsAlloc Current array size (assumed equal to data.length)
+   * @param currItemsAlloc Current array size (assumed equal to items.length)
    * @param itemsSeen Total items seen by this sketch
    * @param rf <a href="{@docRoot}/resources/dictionary.html#resizeFactor">See Resize Factor</a>
    * @param data Data array backing the reservoir, will <em>not</em> be copied
@@ -233,7 +233,7 @@ public final class ReservoirLongsSketch {
   /**
    * Thin wrapper around private constructor
    *
-   * @param data Reservoir data as long[]
+   * @param data Reservoir items as long[]
    * @param itemsSeen Number of items presented to the sketch so far
    * @param rf <a href="{@docRoot}/resources/dictionary.html#resizeFactor">See Resize Factor</a>
    * @param k Maximum reservoir size
@@ -318,7 +318,7 @@ public final class ReservoirLongsSketch {
   }
 
   /**
-   * Returns a human-readable summary of the sketch, without data.
+   * Returns a human-readable summary of the sketch, without items.
    *
    * @return A string version of the sketch summary
    */
@@ -395,7 +395,7 @@ public final class ReservoirLongsSketch {
   }
 
   /**
-   * Useful during union operations to avoid copying the data array around if only updating a few
+   * Useful during union operations to avoid copying the items array around if only updating a few
    * points.
    *
    * @param pos The position from which to retrieve the element
@@ -473,7 +473,7 @@ public final class ReservoirLongsSketch {
   }
 
   /**
-   * Increases allocated sampling size by (adjusted) ResizeFactor and copies data from old sampling.
+   * Increases allocated sampling size by (adjusted) ResizeFactor and copies items from old sampling.
    */
   private void growReservoir() {
     currItemsAlloc_ = SamplingUtil.getAdjustedSize(reservoirSize_, currItemsAlloc_ * rf_.getValue());

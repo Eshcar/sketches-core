@@ -193,7 +193,7 @@ public final class ReservoirLongsUnion {
   }
 
   /**
-   * Returns a human-readable summary of the sketch, without data.
+   * Returns a human-readable summary of the sketch, without items.
    *
    * @return A string version of the sketch summary
    */

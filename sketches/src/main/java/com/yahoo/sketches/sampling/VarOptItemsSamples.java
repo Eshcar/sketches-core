@@ -1,13 +1,35 @@
+/*
+ * Copyright 2016-17, Yahoo! Inc.
+ * Licensed under the terms of the Apache License 2.0. See LICENSE file at the project root for terms.
+ */
+
 package com.yahoo.sketches.sampling;
 
 import java.util.ConcurrentModificationException;
 import java.util.Iterator;
 
 /**
+ * This class provides access to the samples contained in a VarOptItemsSketch. It provides two
+ * mechanisms for access:
+ * <ul>
+ *   <li>An <tt>Iterator</tt> over <tt>WeightedSample</tt> objects which can can be used to
+ *   access both the items and weights in the sample, and which avoids copying data from the
+ *   sketch.</li>
+ *   <li>Getter methods to obtain items or weights as arrays, or individual items. These
+ *   methods create a (shallow) copy of data from the sketch on the first call to any get
+ *   method.</li>
+ * </ul>
+ *
+ * <p>If using getters with a sketch storing heterogeneous items from a polymorphic base class, you
+ * must call <tt>setClass()</tt> prior to calling one of the getter methods. This is not
+ * necessary if using the iterator.</p>
+ *
+ * <p>The class also implements <tt>Iterable</tt> to allow the use of forEach loops for
+ * convenience.</p>
+ *
  * @author Jon Malkin
  */
-public class VarOptItemsSamples<T> implements
-        Iterable<VarOptItemsSamples<T>.WeightedSample> {
+public class VarOptItemsSamples<T> implements Iterable<VarOptItemsSamples<T>.WeightedSample> {
 
   private final VarOptItemsSketch<T> sketch_;
   private VarOptItemsSketch.Result sampleLists;
@@ -15,17 +37,28 @@ public class VarOptItemsSamples<T> implements
   private final double rWeight_;
   private final int h_;
 
-  public class WeightedSample {
+  /**
+   * A convenience class to allow easy iterator access to a VarOpt sample.
+   */
+  public final class WeightedSample {
     private final int idx_;
 
-    WeightedSample(final int i) {
+    private WeightedSample(final int i) {
       idx_ = i;
     }
 
+    /**
+     * Accesses the iterator's current object
+     * @return An item from the sketch's data sample
+     */
     public T getItem() {
       return sketch_.getItem(idx_);
     }
 
+    /**
+     * Accesses the iterator's current weight value
+     * @return A weight from the sketch's data sample
+     */
     public double getWeight() {
       return idx_ > h_ ? rWeight_ : sketch_.getWeight(idx_);
     }
@@ -73,54 +106,79 @@ public class VarOptItemsSamples<T> implements
     return new VarOptItemsIterator();
   }
 
+  /**
+   * Specifies the class to use when copying the item array from the sketch. This method is
+   * required if the sketch stores heterogeneous item types of some base class, for instance a
+   * sketch over <tt>Number</tt>s.
+   *
+   * @param clazz The class to use when creating the item array result
+   */
   public void setClass(final Class clazz) {
-    sampleLists = sketch_.getSamplesAsArrays(clazz);
+    if (sampleLists == null) {
+      sampleLists = sketch_.getSamplesAsArrays(clazz);
+    }
   }
 
+  /**
+   * Returns the length Copies items and weights from the sketch, if necessary, and returns the
+   * length of
+   * any
+   * resulting array. The result will be 0 for an empty sketch.
+   *
+   * @return The number of items and weights in the sketch
+   */
+  public int getNumSamples() {
+    loadArrays();
+    return (sampleLists == null ? 0 : sampleLists.weights.length);
+  }
+
+  /**
+   * Returns a shallow copy of the array of sample items contained in the sketch. If this is the
+   * first getter call, copies data arrays from the sketch.
+   * @return The number of samples contained in the sketch.
+   */
   @SuppressWarnings("unchecked")
   public T[] items() {
-    if (sampleLists == null) {
-      sampleLists = sketch_.getSamplesAsArrays();
-    }
-
-    return (sampleLists == null ? null : (T[]) sampleLists.data);
+    loadArrays();
+    return (sampleLists == null ? null : (T[]) sampleLists.items);
   }
 
+  /**
+   * Returns a single item from the samples contained in the sketch. Does not perform bounds
+   * checking on the input. If this is the first getter call, copies data arrays from the sketch.
+   * @param i An index into the list of samples
+   * @return The sample at array posiiton <tt>i</tt>
+   */
   @SuppressWarnings("unchecked")
   public T items(final int i) {
-    if (sampleLists == null) {
-      sampleLists = sketch_.getSamplesAsArrays();
-    }
-
-    return (sampleLists == null ? null : (T) sampleLists.data[i]);
+    loadArrays();
+    return (sampleLists == null ? null : (T) sampleLists.items[i]);
   }
 
+  /**
+   * Returns a copy of the array of weights contained in the sketch. If this is the first
+   * getter call, copies data arrays from the sketch.
+   * @return The number of samples contained in the sketch.
+   */
   public double[] weights() {
-    if (sampleLists == null) {
-      sampleLists = sketch_.getSamplesAsArrays();
-    }
-
+    loadArrays();
     return (sampleLists == null ? null : sampleLists.weights);
   }
 
+  /**
+   * Returns a single weight from the samples contained in the sketch. Does not perform bounds
+   * checking on the input. If this is the first getter call, copies data arrays from the sketch.
+   * @param i An index into the list of weights
+   * @return The weight at array posiiton <tt>i</tt>
+   */
   public double weights(final int i) {
-    if (sampleLists == null) {
-      sampleLists = sketch_.getSamplesAsArrays();
-    }
-
+    loadArrays();
     return (sampleLists == null ? Double.NaN : sampleLists.weights[i]);
   }
 
-  public static void main(final String[] args) {
-    final VarOptItemsSketch<Long> vis = VarOptItemsSketch.getInstance(12);
-    for (long i = 1; i <= 20; ++i) {
-      vis.update(i, 1.0 * i);
-    }
-
-    final VarOptItemsSamples<Long> result = vis.getSketchSamples();
-    for (VarOptItemsSamples.WeightedSample ws : result) {
-      System.out.println(ws.getItem() + ":\t" + ws.getWeight());
+  private void loadArrays() {
+    if (sampleLists == null) {
+      sampleLists = sketch_.getSamplesAsArrays();
     }
   }
-
 }

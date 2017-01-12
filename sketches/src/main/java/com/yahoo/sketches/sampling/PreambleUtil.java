@@ -21,11 +21,11 @@ import com.yahoo.sketches.SketchesArgumentException;
 //@formatter:off
 
 /**
- * This class defines the preamble data structure and provides basic utilities for some of the key
+ * This class defines the preamble items structure and provides basic utilities for some of the key
  * fields.
  *
  * <p>
- * MAP: Low significance bytes of this <i>long</i> data structure are on the right. However, the
+ * MAP: Low significance bytes of this <i>long</i> items structure are on the right. However, the
  * multi-byte integers (<i>int</i> and <i>long</i>) are stored in native byte order. The
  * <i>byte</i> values are treated as unsigned.</p>
  *
@@ -62,7 +62,7 @@ import com.yahoo.sketches.SketchesArgumentException;
  *  0   ||---------Max Res. Size (K)---------|  Flags | FamID  | SerVer |   Preamble_Longs   |
  * </pre>
  *
- * <p><string>VarOpt:</string> A VarOpt sketch has a more complex internal data structure and
+ * <p><string>VarOpt:</string> A VarOpt sketch has a more complex internal items structure and
  * requires a larger preamble. Values serving a similar purpose in both reservoir and varopt sampling
  * share the same byte ranges, allowing method re-use where practical.</p>
  *
@@ -107,10 +107,11 @@ final class PreambleUtil {
   //static final int MAX_K_SHORT           = 4; // used in Union only, ser_ver 1
   //static final int MAX_K_INT             = 4; // used in Union only
 
-  // addresses used in varopt
+  // constants and addresses used in varopt
   static final int ITEM_COUNT_H_INT      = 16;
   static final int ITEM_COUNT_R_INT      = 20;
   static final int TOTAL_WEIGHT_R_DOUBLE = 24;
+  static final int VO_WARMUP_PRELONGS    = 3;   // Doesn't match min or max prelongs in Family
 
   // flag bit masks
   //static final int BIG_ENDIAN_FLAG_MASK = 1;

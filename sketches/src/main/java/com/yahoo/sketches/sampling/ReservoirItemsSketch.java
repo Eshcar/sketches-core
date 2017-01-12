@@ -61,7 +61,7 @@ public final class ReservoirItemsSketch<T> {
   private int currItemsAlloc_;           // currently allocated array size
   private long itemsSeen_;               // number of items presented to sketch
   private final ResizeFactor rf_;        // resize factor
-  private ArrayList<T> data_;            // stored sampled data
+  private ArrayList<T> data_;            // stored sampled items
 
   private ReservoirItemsSketch(final int k, final ResizeFactor rf) {
     // required due to a theorem about lightness during merging
@@ -85,9 +85,9 @@ public final class ReservoirItemsSketch<T> {
   /**
    * Creates a fully-populated sketch. Used internally to avoid extraneous array allocation
    * when deserializing.
-   * Uses size of data array to as initial array allocation.
+   * Uses size of items array to as initial array allocation.
    *
-   * @param data      Reservoir data as an <tt>ArrayList&lt;T&gt;</tt>
+   * @param data      Reservoir items as an <tt>ArrayList&lt;T&gt;</tt>
    * @param itemsSeen Number of items presented to the sketch so far
    * @param rf        <a href="{@docRoot}/resources/dictionary.html#resizeFactor">See Resize Factor</a>
    * @param k         Maximum size of reservoir
@@ -108,7 +108,7 @@ public final class ReservoirItemsSketch<T> {
             || (itemsSeen < k && data.size() < itemsSeen)) {
       throw new SketchesArgumentException("Instantiating sketch with too few samples. Items seen: "
               + itemsSeen + ", max reservoir size: " + k
-              + ", data array length: " + data.size());
+              + ", items array length: " + data.size());
     }
 
     // Should we compute target current allocation to validate?
@@ -124,7 +124,7 @@ public final class ReservoirItemsSketch<T> {
    * validation. Used with copy().
    *
    * @param k              Maximum reservoir capacity
-   * @param currItemsAlloc Current array size (assumed equal to data.length)
+   * @param currItemsAlloc Current array size (assumed equal to items.length)
    * @param itemsSeen      Total items seen by this sketch
    * @param rf             <a href="{@docRoot}/resources/dictionary.html#resizeFactor">See Resize Factor</a>
    * @param data           Data ArrayList backing the reservoir, will <em>not</em> be copied
@@ -169,7 +169,7 @@ public final class ReservoirItemsSketch<T> {
   /**
    * Thin wrapper around private constructor
    *
-   * @param data      Reservoir data as ArrayList&lt;T&gt;
+   * @param data      Reservoir items as ArrayList&lt;T&gt;
    * @param itemsSeen Number of items presented to the sketch so far
    * @param rf        <a href="{@docRoot}/resources/dictionary.html#resizeFactor">See Resize Factor</a>
    * @param k         Compact encoding of reservoir size
@@ -375,7 +375,7 @@ public final class ReservoirItemsSketch<T> {
   }
 
   /**
-   * Returns a human-readable summary of the sketch, without data.
+   * Returns a human-readable summary of the sketch, without items.
    *
    * @return A string version of the sketch summary
    */
@@ -423,7 +423,7 @@ public final class ReservoirItemsSketch<T> {
   public byte[] toByteArray(final ArrayOfItemsSerDe<? super T> serDe, final Class<?> clazz) {
     final int preLongs, outBytes;
     final boolean empty = itemsSeen_ == 0;
-    byte[] bytes = null; // for serialized data from serDe
+    byte[] bytes = null; // for serialized items from serDe
 
     if (empty) {
       preLongs = 1;
@@ -472,7 +472,7 @@ public final class ReservoirItemsSketch<T> {
   }
 
   /**
-   * Useful during union operations to avoid copying the data array around if only updating a
+   * Useful during union operations to avoid copying the items array around if only updating a
    * few points.
    *
    * @param pos The position from which to retrieve the element
@@ -557,7 +557,7 @@ public final class ReservoirItemsSketch<T> {
   }
 
   /**
-   * Increases allocated sampling size by (adjusted) ResizeFactor and copies data from old
+   * Increases allocated sampling size by (adjusted) ResizeFactor and copies items from old
    * sampling.
    */
   private void growReservoir() {
