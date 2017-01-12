@@ -671,21 +671,24 @@ public final class VarOptItemsSketch<T> {
   }
 
   /* Validates the heap condition for the weight array */
+  /*
   private void validateHeap() {
     for (int j = h_ - 1; j >= 1; --j) {
       final int p = ((j + 1) / 2) - 1;
       assert weights_.get(p) <= weights_.get(j);
     }
   }
+  */
 
   /* Converts the data_ and weights_ arrays to heaps. In contrast to other parts
      of the library, this has nothing to do with on- or off-heap storage or the
      Memory package.
    */
   private void convertToHeap() {
-    if (h_ < 2) {
-      return; // nothing to do
-    }
+    assert h_ >= 2;
+    //if (h_ < 2) {
+    //  return; // nothing to do
+    //}
 
     final int lastSlot = h_ - 1;
     final int lastNonLeaf = ((lastSlot + 1) / 2) - 1;
@@ -694,8 +697,7 @@ public final class VarOptItemsSketch<T> {
       restoreTowardsLeaves(j);
     }
 
-    // TODO: remove extra check
-    validateHeap();
+    //validateHeap();
   }
 
   private void restoreTowardsLeaves(final int slotIn) {
