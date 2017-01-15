@@ -7,13 +7,13 @@ package com.yahoo.sketches.sampling;
 
 import static com.yahoo.memory.UnsafeUtil.unsafe;
 import static com.yahoo.sketches.Util.LS;
-import static com.yahoo.sketches.Util.TAB;
 import static com.yahoo.sketches.Util.zeroPad;
 
 import java.nio.ByteOrder;
 
 import com.yahoo.memory.Memory;
 import com.yahoo.memory.NativeMemory;
+
 import com.yahoo.sketches.Family;
 import com.yahoo.sketches.ResizeFactor;
 import com.yahoo.sketches.SketchesArgumentException;
@@ -148,57 +148,135 @@ final class PreambleUtil {
    * @return the summary preamble string.
    */
   public static String preambleToString(final Memory mem) {
-    // TODO: different path for sketch vs union vs varopt based on family flag
+    final int preLongs = getAndCheckPreLongs(mem);  // make sure we can get the assumed preamble
+
     final Object memObj = mem.array(); // may be null
     final long memAddr = mem.getCumulativeOffset(0L);
-    final int preLongs = getAndCheckPreLongs(mem);  // make sure we can get the assumed preamble
+    final Family family = Family.idToFamily(extractFamilyID(memObj, memAddr));
+
+    switch (family) {
+      case RESERVOIR:
+      case VAROPT:
+        return sketchPreambleToString(mem, family, preLongs);
+      case RESERVOIR_UNION:
+        return unionPreambleToString(mem, family, preLongs);
+      default:
+        throw new SketchesArgumentException("Inspecting preamble with Sampling family's "
+                + "PreambleUtil with object of family " + family.getFamilyName());
+    }
+  }
+
+  private static String sketchPreambleToString(final Memory mem,
+                                               final Family family,
+                                               final int preLongs) {
+    final Object memObj = mem.array(); // may be null
+    final long memAddr = mem.getCumulativeOffset(0L);
 
     final ResizeFactor rf = ResizeFactor.getRF(extractResizeFactor(memObj, memAddr));
     final int serVer = extractSerVer(memObj, memAddr);
-    final Family family = Family.idToFamily(extractFamilyID(memObj, memAddr));
 
-    //Flags
+    // Flags
     final int flags = extractFlags(memObj, memAddr);
     final String flagsStr = zeroPad(Integer.toBinaryString(flags), 8) + ", " + (flags);
-    //boolean bigEndian = (flags & BIG_ENDIAN_FLAG_MASK) > 0;
-    final String nativeOrder = ByteOrder.nativeOrder().toString();
-    //boolean compact = (flags & COMPACT_FLAG_MASK) > 0;
-    //boolean ordered = (flags & ORDERED_FLAG_MASK) > 0;
-    //boolean readOnly = (flags & READ_ONLY_FLAG_MASK) > 0;
+    //final boolean bigEndian = (flags & BIG_ENDIAN_FLAG_MASK) > 0;
+    //final String nativeOrder = ByteOrder.nativeOrder().toString();
+    //final boolean readOnly = (flags & READ_ONLY_FLAG_MASK) > 0;
     final boolean isEmpty = (flags & EMPTY_FLAG_MASK) > 0;
 
-    final int k = extractK(memObj, memAddr);
+    final int k;
+    if (serVer == 1) {
+      final short encK = extractEncodedReservoirSize(memObj, memAddr);
+      k = ReservoirSize.decodeValue(encK);
+    } else {
+      k = extractK(memObj, memAddr);
+    }
 
     long n = 0;
     if (!isEmpty) {
       n = extractN(memObj, memAddr);
     }
+    final long dataBytes = mem.getCapacity() - (preLongs << 3);
 
     final StringBuilder sb = new StringBuilder();
     sb.append(LS)
-      .append("### SKETCH PREAMBLE SUMMARY:").append(LS)
+      .append("### END ")
+      .append(family.getFamilyName().toUpperCase())
+      .append(" PREAMBLE SUMMARY").append(LS)
       .append("Byte  0: Preamble Longs       : ").append(preLongs).append(LS)
       .append("Byte  0: ResizeFactor         : ").append(rf.toString()).append(LS)
       .append("Byte  1: Serialization Version: ").append(serVer).append(LS)
       .append("Byte  2: Family               : ").append(family.toString()).append(LS)
       .append("Byte  3: Flags Field          : ").append(flagsStr).append(LS)
       //.append("  BIG_ENDIAN_STORAGE          : ").append(bigEndian).append(LS)
-      .append("  (Native Byte Order)         : ").append(nativeOrder).append(LS)
+      //.append("  (Native Byte Order)         : ").append(nativeOrder).append(LS)
       //.append("  READ_ONLY                   : ").append(readOnly).append(LS)
       .append("  EMPTY                       : ").append(isEmpty).append(LS)
-      .append("Bytes  4-7: Reservoir Size    : ").append(k).append(TAB + "(").append(LS);
+      .append("Bytes  4-7: Sketch Size (k)   : ").append(k).append(LS);
     if (!isEmpty) {
-      sb.append("Bytes 8-13: Items Seen      : ").append(n).append(LS);
+      sb.append("Bytes 8-15: Items Seen (n)    : ").append(n).append(LS);
+    }
+    if (family == Family.VAROPT) {
+      final int hCount = extractHRegionItemCount(memObj, memAddr);
+      final int rCount = extractRRegionItemCount(memObj, memAddr);
+      final double totalRWeight = extractTotalRWeight(memObj, memAddr);
+      sb.append("Bytes 16-19: H region count   : ").append(hCount).append(LS)
+        .append("Bytes 20-23: R region count   : ").append(rCount).append(LS)
+        .append("Bytes 24-31: R region weight  : ").append(totalRWeight).append(LS);
     }
 
-    sb.append("Preamble Bytes                : ").append(preLongs << 3).append(LS);
-    //sb.append(  "Data Bytes                    : ").append(curCount * 8).append(LS);
-    //sb.append(  "TOTAL Sketch Bytes            : ").append(mem.getCapacity()).append(LS)
-    sb.append("### END SKETCH PREAMBLE SUMMARY").append(LS);
+    sb.append("TOTAL Sketch Bytes            : ").append(mem.getCapacity()).append(LS)
+      .append("  Preamble Bytes              : ").append(preLongs << 3).append(LS)
+      .append("  Data Bytes                  : ").append(dataBytes).append(LS)
+      .append("### END ")
+      .append(family.getFamilyName().toUpperCase())
+      .append(" PREAMBLE SUMMARY").append(LS);
     return sb.toString();
   }
 
-  //Extract from long and insert into long methods
+  private static String unionPreambleToString(final Memory mem,
+                                              final Family family,
+                                              final int preLongs) {
+    final Object memObj = mem.array(); // may be null
+    final long memAddr = mem.getCumulativeOffset(0L);
+
+    final ResizeFactor rf = ResizeFactor.getRF(extractResizeFactor(memObj, memAddr));
+    final int serVer = extractSerVer(memObj, memAddr);
+
+    // Flags
+    final int flags = extractFlags(memObj, memAddr);
+    final String flagsStr = zeroPad(Integer.toBinaryString(flags), 8) + ", " + (flags);
+    //final boolean bigEndian = (flags & BIG_ENDIAN_FLAG_MASK) > 0;
+    //final String nativeOrder = ByteOrder.nativeOrder().toString();
+    //final boolean readOnly = (flags & READ_ONLY_FLAG_MASK) > 0;
+    final boolean isEmpty = (flags & EMPTY_FLAG_MASK) > 0;
+
+    final int k;
+    if (serVer == 1) {
+      final short encK = extractEncodedReservoirSize(memObj, memAddr);
+      k = ReservoirSize.decodeValue(encK);
+    } else {
+      k = extractK(memObj, memAddr);
+    }
+
+    final long dataBytes = mem.getCapacity() - (preLongs << 3);
+
+    return LS
+            + "### END " + family.getFamilyName().toUpperCase() + " PREAMBLE SUMMARY" + LS
+            + "Byte  0: Preamble Longs           : " + preLongs + LS
+            + "Byte  0: ResizeFactor             : " + rf.toString() + LS
+            + "Byte  1: Serialization Version    : " + serVer + LS
+            + "Byte  2: Family                   : " + family.toString() + LS
+            + "Byte  3: Flags Field              : " + flagsStr + LS
+            //+ "  BIG_ENDIAN_STORAGE              : " + bigEndian + LS
+            //+ "  (Native Byte Order)             : " + nativeOrder + LS
+            //+ "  READ_ONLY                       : " + readOnly + LS
+            + "  EMPTY                           : " + isEmpty + LS
+            + "Bytes  4-7: Max Sketch Size (maxK): " + k + LS
+            + "TOTAL Sketch Bytes                : " + mem.getCapacity() + LS
+            + "  Preamble Bytes                  : " + (preLongs << 3) + LS
+            + "  Sketch Bytes                    : " + dataBytes + LS
+            + "### END " + family.getFamilyName().toUpperCase() + " PREAMBLE SUMMARY" + LS;
+  }
 
   static int extractPreLongs(final Object memObj, final long memAddr) {
     return unsafe.getByte(memObj, memAddr + PREAMBLE_LONGS_BYTE) & 0x3F;

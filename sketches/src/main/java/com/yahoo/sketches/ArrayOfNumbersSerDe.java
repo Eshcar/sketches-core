@@ -10,11 +10,12 @@ import com.yahoo.memory.NativeMemory;
 import com.yahoo.memory.UnsafeUtil;
 
 /**
- * Methods of serializing and deserializing arrays of the object version of primitive types of Number.
+ * Methods of serializing and deserializing arrays of the object version of primitive types of
+ * Number.
  *
- * <p>This class serializes numbers with a leading byte (ASCII character) indicating the type. The class keeps
- * the values byte aligned, even though only 3 bits are strictly necessary to encode one of
- * the 6 different primitives with object types that extend Number.</p>
+ * <p>This class serializes numbers with a leading byte (ASCII character) indicating the type.
+ * The class keeps the values byte aligned, even though only 3 bits are strictly necessary to
+ * encode one of the 6 different primitives with object types that extend Number.</p>
  *
  * <p>Classes handled are: <tt>Long</tt>, <tt>Integer</tt>, <tt>Short</tt>, <tt>Byte</tt>,
  * <tt>Double</tt>, and <tt>Float</tt>.</p>
@@ -34,9 +35,7 @@ public class ArrayOfNumbersSerDe extends ArrayOfItemsSerDe<Number> {
   public byte[] serializeToByteArray(final Number[] items) {
     int length = 0;
     for (final Number item: items) {
-      if (item == null) {
-        length += Byte.BYTES;
-      } else if (item instanceof Long) {
+      if (item instanceof Long) {
         length += Byte.BYTES + Long.BYTES;
       } else if (item instanceof Integer) {
         length += Byte.BYTES + Integer.BYTES;
@@ -50,7 +49,7 @@ public class ArrayOfNumbersSerDe extends ArrayOfItemsSerDe<Number> {
         length += Byte.BYTES + Float.BYTES;
       } else {
         throw new SketchesArgumentException(
-            "Item must be one of: Long, Integer, Short, Byte, Double, Float, (null)");
+            "Item must be one of: Long, Integer, Short, Byte, Double, Float");
       }
     }
     final byte[] bytes = new byte[length];
@@ -77,12 +76,10 @@ public class ArrayOfNumbersSerDe extends ArrayOfItemsSerDe<Number> {
         mem.putByte(offsetBytes, DOUBLE_INDICATOR);
         mem.putDouble(offsetBytes + 1, item.doubleValue());
         offsetBytes += Byte.BYTES + Double.BYTES;
-      } else if (item instanceof Float) {
+      } else { // (item instanceof Float) 0- already checked poosibilities above
         mem.putByte(offsetBytes, FLOAT_INDICATOR);
         mem.putFloat(offsetBytes + 1, item.floatValue());
         offsetBytes += Byte.BYTES + Float.BYTES;
-      } else {
-        throw new SketchesArgumentException("Item must be one of: Long, Integer, Short, Byte, Double, Float");
       }
     }
     return bytes;
@@ -129,8 +126,8 @@ public class ArrayOfNumbersSerDe extends ArrayOfItemsSerDe<Number> {
           offsetBytes += Float.BYTES;
           break;
         default:
-          throw new SketchesArgumentException("Unrecognized entry type reading Number array entry " + i + ": "
-                  + numType);
+          throw new SketchesArgumentException("Unrecognized entry type reading Number array entry "
+              + i + ": " + numType);
       }
     }
 
