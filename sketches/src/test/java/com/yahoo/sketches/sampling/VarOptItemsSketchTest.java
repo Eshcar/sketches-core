@@ -312,7 +312,7 @@ public class VarOptItemsSketchTest {
     final byte[] bytes = sketch.toByteArray(new ArrayOfLongsSerDe());
     final Memory mem = new NativeMemory(bytes);
 
-    // ensure 2 preLongs
+    // ensure correct number of preLongs
     final Object memObj = mem.array(); // may be null
     final long memAddr = mem.getCumulativeOffset(0L);
     assertEquals(PreambleUtil.extractPreLongs(memObj, memAddr), PreambleUtil.VO_WARMUP_PRELONGS);

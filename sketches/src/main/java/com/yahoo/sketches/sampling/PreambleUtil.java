@@ -220,8 +220,10 @@ final class PreambleUtil {
       final int rCount = extractRRegionItemCount(memObj, memAddr);
       final double totalRWeight = extractTotalRWeight(memObj, memAddr);
       sb.append("Bytes 16-19: H region count   : ").append(hCount).append(LS)
-        .append("Bytes 20-23: R region count   : ").append(rCount).append(LS)
-        .append("Bytes 24-31: R region weight  : ").append(totalRWeight).append(LS);
+        .append("Bytes 20-23: R region count   : ").append(rCount).append(LS);
+      if (rCount > 0) {
+        sb.append("Bytes 24-31: R region weight  : ").append(totalRWeight).append(LS);
+      }
     }
 
     sb.append("TOTAL Sketch Bytes            : ").append(mem.getCapacity()).append(LS)

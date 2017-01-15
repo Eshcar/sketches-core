@@ -492,7 +492,7 @@ public final class VarOptItemsSketch<T> {
         offset += Double.BYTES;
       }
 
-      // write the items items, using offset from earlier
+      // write the sample items, using offset from earlier
       mem.putByteArray(offset, bytes, 0, bytes.length);
     }
 
