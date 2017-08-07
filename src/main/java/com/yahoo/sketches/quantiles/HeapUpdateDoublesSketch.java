@@ -34,7 +34,7 @@ import com.yahoo.sketches.SketchesArgumentException;
  * @author Lee Rhodes
  * @author Jon Malkin
  */
-final class HeapUpdateDoublesSketch extends UpdateDoublesSketch {
+public class HeapUpdateDoublesSketch extends UpdateDoublesSketch {
   static final int MIN_HEAP_DOUBLES_SER_VER = 1;
 
   /**
@@ -79,7 +79,7 @@ final class HeapUpdateDoublesSketch extends UpdateDoublesSketch {
   private double[] combinedBuffer_;
 
   //**CONSTRUCTORS**********************************************************
-  private HeapUpdateDoublesSketch(final int k) {
+  public HeapUpdateDoublesSketch(final int k) {
     super(k); //Checks k
   }
 
