@@ -36,11 +36,11 @@ final class SWSRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 	static SWSRHeapUpdateDoublesSketch newInstance(final int k) {
 		final SWSRHeapUpdateDoublesSketch hqs = new SWSRHeapUpdateDoublesSketch(k);
 		final int baseBufAlloc = 2 * k; // the min is important
-		
+
 		hqs.putN(0);
 		hqs.putCombinedBuffer(new double[baseBufAlloc]);
 		hqs.putBaseBufferCount(0);
-		hqs.putBitPattern(1);  // represent also the base buffer.
+		hqs.putBitPattern(1); // represent also the base buffer.
 		hqs.putMinValue(Double.POSITIVE_INFINITY);
 		hqs.putMaxValue(Double.NEGATIVE_INFINITY);
 
@@ -82,7 +82,7 @@ final class SWSRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 
 		// put the new item in the base buffer
 		getCombinedBuffer()[curBBCount] = dataItem;
-//		combinedBuffer_[curBBCount] = dataItem;
+		// combinedBuffer_[curBBCount] = dataItem;
 
 		if (newBBCount == k_ << 1) { // Propagate
 
@@ -107,7 +107,7 @@ final class SWSRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 
 			// firstZipSize2KBuffer(bbAccessor, scratch2KAcc);
 
-			long legacyBitPattern = getBitPattern() >> 1; //bitPattern_ >> 1;
+			long legacyBitPattern = getBitPattern() >> 1; // bitPattern_ >> 1;
 
 			final long newBitPattern = DoublesUpdateImpl.inPlacePropagateCarry(0, // starting level
 					null, auxiliaryPropogateArray_, true, k_, DoublesSketchAccessor.wrap(this, true), legacyBitPattern);
@@ -115,16 +115,16 @@ final class SWSRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 			assert newBitPattern == computeBitPattern(k_, newN); // internal consistency check
 			assert newBitPattern == legacyBitPattern + 1;
 
-			putBitPattern( newBitPattern << 1);  //bitPattern_ = newBitPattern << 1;
-			putBaseBufferCount(0);   //baseBufferCount_ = 0;
+			putBitPattern(newBitPattern << 1); // bitPattern_ = newBitPattern << 1;
+			putBaseBufferCount(0); // baseBufferCount_ = 0;
 			// resetBB();
-			putBitPattern(getBitPattern() | 1);  //   bitPattern_ = bitPattern_ | 1;
+			putBitPattern(getBitPattern() | 1); // bitPattern_ = bitPattern_ | 1;
 
 		} else {
 			// bitPattern unchanged
-			putBaseBufferCount(newBBCount);    //baseBufferCount_ = newBBCount;
+			putBaseBufferCount(newBBCount); // baseBufferCount_ = newBBCount;
 		}
-		putN(newN);    //n_ = newN;
+		putN(newN); // n_ = newN;
 	}
 
 	// TODO: check the logic.
@@ -140,8 +140,8 @@ final class SWSRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 			return getMaxValue();
 		}
 
-		long bitP1 = getBitPattern();  //bitPattern_;
-		int BBCount = getBaseBufferCount();  //baseBufferCount_;
+		long bitP1 = getBitPattern(); // bitPattern_;
+		int BBCount = getBaseBufferCount(); // baseBufferCount_;
 
 		long legacyBitP1 = bitP1 >> 1;
 		int levels = Util.computeTotalLevels(legacyBitP1);
@@ -152,14 +152,14 @@ final class SWSRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 
 		collectOnce(auxiliarySketch, -1, levels);
 		auxiliarySketch.putBitPattern(legacyBitP1);
-		
-		if ( (bitP1 & 1) > 0) {
+
+		if ((bitP1 & 1) > 0) {
 			auxiliarySketch.putBaseBufferCount(BBCount);
 		} else {
 			auxiliarySketch.putBaseBufferCount(0);
 		}
 
-		long bitP2 =  getBitPattern();  //bitPattern_;
+		long bitP2 = getBitPattern(); // bitPattern_;
 		long legacyBitP2 = bitP2 >> 1;
 
 		while (legacyBitP1 != legacyBitP2) {
@@ -178,7 +178,7 @@ final class SWSRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 			collect(auxiliarySketch, 0, diffLevels, legacyBitP2);
 
 			legacyBitP1 = legacyBitP2;
-			bitP2 = getBitPattern();    //bitPattern_;
+			bitP2 = getBitPattern(); // bitPattern_;
 			legacyBitP2 = bitP2 >> 1;
 			auxiliarySketch.putBaseBufferCount(0);
 			auxiliarySketch.putBitPattern(legacyBitP1);
@@ -194,36 +194,34 @@ final class SWSRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 	}
 
 	private long setNFromBitPattern(long bits) {
-		
+
 		int levels = Util.computeTotalLevels(bits);
-		
+
 		if (levels == 0) {
 			return 0;
 		}
-		
-		int index = 1 << (levels -1);
+
+		int index = 1 << (levels - 1);
 		long weight = power(2, levels);
 		long n = 0;
-		
-		assert( (bits & index) > 0 );
-		
-		while(index > 0) {
-			if ( (bits & index) > 0 ) {
-				 n += (k_ * weight);
+
+		assert ((bits & index) > 0);
+
+		while (index > 0) {
+			if ((bits & index) > 0) {
+				n += (k_ * weight);
 			}
 			weight = weight / 2;
 			index = index >> 1;
 		}
-		
-		
-//		for (int ind = index; ind > 0; ind >> 1) {
-//			if ( (bits & ind) > 0 ) {
-//				 n += (k_ * weight);
-//			}
-//			weight = weight / 2;
-//		}
 
-		
+		// for (int ind = index; ind > 0; ind >> 1) {
+		// if ( (bits & ind) > 0 ) {
+		// n += (k_ * weight);
+		// }
+		// weight = weight / 2;
+		// }
+
 		return n;
 	}
 
@@ -248,8 +246,8 @@ final class SWSRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 	}
 
 	private int bitPatternDiff(long bits1, long bits2, int levels) {
-		assert(bits2 > bits1);
-		assert(levels > 0);
+		assert (bits2 > bits1);
+		assert (levels > 0);
 		long index = 1 << (levels - 1);
 
 		for (int i = levels; i > 0; i--) {
@@ -260,23 +258,23 @@ final class SWSRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 			}
 			index = index >> 1;
 		}
-		
-		assert(false);
+
+		assert (false);
 		return -1;
 	}
 
 	private void collect(HeapUpdateDoublesSketch ds, int stopAtThisLevel, int topLevel, long bits) {
-		assert((bits & (1 << (topLevel-1)))  > 0);
-		
-		long index = 1 << (topLevel-1);
-		
+		assert ((bits & (1 << (topLevel - 1))) > 0);
+
+		long index = 1 << (topLevel - 1);
+
 		for (int curLevel = topLevel; curLevel > stopAtThisLevel; curLevel--) {
 			if ((bits & index) > 0) {
 				int startIndex = (2 * k_) + ((curLevel - 1) * k_);
- 				
+
 				System.arraycopy(getCombinedBuffer(), startIndex, ds.getCombinedBuffer(), startIndex, k_);
 			}
-		index = index >> 1;
+			index = index >> 1;
 		}
 	}
 
@@ -300,7 +298,7 @@ final class SWSRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 	}
 
 	private int getRequiredSpace(int levels) {
-		
+
 		return (2 + levels) * k_;
 	}
 
@@ -313,6 +311,19 @@ final class SWSRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 		for (int i = 1; i < len; i += i) {
 			System.arraycopy(getCombinedBuffer(), 0, getCombinedBuffer(), i, ((len - i) < i) ? (len - i) : i);
 		}
+	}
+
+	@Override
+	public void reset() {
+		final int baseBufAlloc = 2 * k_; 
+
+		this.putN(0);
+		this.putCombinedBuffer(new double[baseBufAlloc]);
+		this.putBaseBufferCount(0);
+		this.putBitPattern(1); // represent also the base buffer.
+		this.putMinValue(Double.POSITIVE_INFINITY);
+		this.putMaxValue(Double.NEGATIVE_INFINITY);
+
 	}
 
 }
