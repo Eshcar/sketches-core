@@ -5,10 +5,11 @@
 package com.yahoo.sketches.utils;
 
 import com.yahoo.memory.Memory;
-import com.yahoo.memory.NativeMemory;
+//import com.yahoo.memory.NativeMemory;
 import com.yahoo.sketches.theta.Sketch;
 import com.yahoo.sketches.theta.Sketches;
 import com.yahoo.sketches.theta.UpdateSketch;
+import com.yahoo.sketches.theta.HeapAlphaSketch;
 
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicLong;
@@ -20,18 +21,18 @@ public class RandomSketchesAndDatumGenerator {
   private static final int ARRAY_SIZE = 3;
 
   public static Sketch generateRandomSketch(int k) {
-    UpdateSketch usk = UpdateSketch.builder().build(k);
-    buildUpdateSketch(k, usk);
-    return usk;
+//	  UpdateSketch usk = UpdateSketch.builder().build(k);
+//    buildUpdateSketch(k, usk);
+    return null;
   }
 
   public static Memory generateRandomMemory(int k) {
     int bytes = Sketches.getMaxUpdateSketchBytes(k);
     byte[] arr = new byte[bytes];
-    NativeMemory mem = new NativeMemory(arr);
-    UpdateSketch usk = UpdateSketch.builder().initMemory(mem).build(k);
-    buildUpdateSketch(k, usk);
-    return mem;
+//    Memory mem;
+//    UpdateSketch usk = UpdateSketch.builder().initMemory(mem).build(k);
+//    buildUpdateSketch(k, usk);
+    return null;
   }
 
   private static void buildUpdateSketch(int k, UpdateSketch usk) {

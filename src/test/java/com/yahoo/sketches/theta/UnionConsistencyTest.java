@@ -49,16 +49,16 @@ public class UnionConsistencyTest {
 
   @Before
   public void setUp() throws Exception {
-    Union u = Sketches.setOperationBuilder().buildUnion(K);
-    switch (type) {
-    case CONCURRENT_RW_LOCK:
-      union = new ConcurrentUnion(u);
-      break;
-    case NOT_THREAD_SAFE:
-    default:
-      union = u;
-      break;
-    }
+//    Union u = Sketches.setOperationBuilder().buildUnion(K);
+//    switch (type) {
+//    case CONCURRENT_RW_LOCK:
+//      union = new ConcurrentUnion(u);
+//      break;
+//    case NOT_THREAD_SAFE:
+//    default:
+//      union = u;
+//      break;
+//    }
   }
 
   @Test

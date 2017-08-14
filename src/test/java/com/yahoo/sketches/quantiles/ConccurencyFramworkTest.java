@@ -21,12 +21,13 @@ public class ConccurencyFramworkTest {
 
 	@Parameterized.Parameters
 	public static Object[] data() {
-//		return new Object[] { "ORIGINAL", "SWMR_BASIC", "LOCK_BASE_OIGENAL"  }; // "ORIGINAL", "SWWR_BASIC",
-																				// "GLOBAL_LOCK, 'MWMR"
-		
-//		return new Object[] {"LOCK_BASE_OIGENAL" };
-		return new Object[] {"ORIGINAL" };
-//		return new Object[] {"SWMR_BASIC" };
+		// return new Object[] { "ORIGINAL", "SWMR_BASIC", "LOCK_BASE_OIGENAL" }; //
+		// "ORIGINAL", "SWWR_BASIC",
+		// "GLOBAL_LOCK, 'MWMR"
+
+		 return new Object[] {"LOCK_BASE_OIGENAL" };
+		// return new Object[] {"ORIGINAL" };
+//		return new Object[] { "SWMR_BASIC" };
 	}
 
 	enum SketchType {
@@ -71,42 +72,53 @@ public class ConccurencyFramworkTest {
 			break;
 		}
 
-//		for (double i = 1; i < 100000; i++) {
-//			ds_.update(i);
-//		}
+		// for (double i = 1; i < 100000; i++) {
+		// ds_.update(i);
+		// }
 	}
+
+	// @Test
+	// public void testSequentualThread() throws Exception {
+	// LOG.info("=============testSequentualThread:==================");
+	// runTest(0, 0, 1, 100);
+	// ds_.reset();
+	// runTest(0, 0, 1, 100);
+	// ds_.reset();
+	// runTest(0, 0, 1, 100);
+	// ds_.reset();
+	// runTest(0, 0, 1, 100);
+	// ds_.reset();
+	// runTest(0, 0, 1, 100);
+	// ds_.reset();
+	// runTest(0, 0, 1, 100);
+	// ds_.reset();
+	//
+	// }
 
 	@Test
-	public void testSequentualThread() throws Exception {
-		LOG.info("=============testSequentualThread:==================");
-		runTest(0, 0, 1, 100);
-		ds_.reset();
-		runTest(0, 0, 1, 100);
-		ds_.reset();
-		runTest(0, 0, 1, 100);
-		ds_.reset();
-		runTest(0, 0, 1, 100);
-		ds_.reset();
-		runTest(0, 0, 1, 100);
-		ds_.reset();
-		runTest(0, 0, 1, 100);
-		ds_.reset();
+	public void SWMR() throws Exception {
+		LOG.info("=====================Test SWMR:======================");
 
+		switch (type_) {
+		case ORIGINAL:
+			LOG.info("Type = " + type_ + " Test skipped");
+			break;
+		default:
+			runTest(1, 1, 0, 100);
+			ds_.reset();
+			runTest(1, 1, 0, 100);
+			ds_.reset();
+			runTest(1, 1, 0, 100);
+			ds_.reset();
+			runTest(1, 1, 0, 100);
+			ds_.reset();
+			runTest(1, 1, 0, 100);
+			ds_.reset();
+			runTest(1, 1, 0, 100);
+			ds_.reset();
+			break;
+		}
 	}
-
-//	@Test
-//	public void SWMR() throws Exception {
-//		LOG.info("=====================Test SWMR:======================");
-//
-//		switch (type_) {
-//		case ORIGINAL:
-//			LOG.info("Type = " + type_ + " Test skipped");
-//			break;
-//		default:
-//			runTest(1, 1, 0, 100);
-//			break;
-//		}
-//	}
 
 	private void runTest(int writersNum, int readersNum, int mixedNum, long secondsToRun) throws Exception {
 
@@ -138,28 +150,25 @@ public class ConccurencyFramworkTest {
 		ctx.stop();
 
 		LOG.info("Finished test. ");
-		
+
 		int totalReads = 0;
 		int totalWrites = 0;
-		
-		
+
 		LOG.info("Mixed threads:");
-		
+
 		for (MixedThread mixed : mixedList) {
-//			LOG.info("  writeTput: " + mixed.writeTput_);
-//			LOG.info("  readLatency: " + mixed.readLatency_);
+			// LOG.info(" writeTput: " + mixed.writeTput_);
+			// LOG.info(" readLatency: " + mixed.readLatency_);
 			totalReads += mixed.readOps_;
 			totalWrites += mixed.writeOps_;
 		}
 		LOG.info("writeTput = " + (totalWrites / secondsToRun));
 		LOG.info("readTput = " + (totalReads / secondsToRun));
-		LOG.info("Total ThPut= " + ((totalReads +  totalWrites)/ secondsToRun));
+		LOG.info("Total ThPut= " + ((totalReads + totalWrites) / secondsToRun));
 
-		
 		totalReads = 0;
 		totalWrites = 0;
-		
-		
+
 		LOG.info("Write threads:");
 		for (WriterThread writer : writersList) {
 			totalWrites += writer.operationsNum_;
@@ -175,7 +184,7 @@ public class ConccurencyFramworkTest {
 	}
 
 	public static class WriterThread extends TestThread {
-//		Random rand_ = new Random();
+		// Random rand_ = new Random();
 		HeapUpdateDoublesSketch ds_;
 		int operationsNum_ = 0;
 
@@ -188,15 +197,15 @@ public class ConccurencyFramworkTest {
 		@Override
 		public void doWork() throws Exception {
 
-				this.ds_.update(operationsNum_);
-				this.operationsNum_++;
+			this.ds_.update(operationsNum_);
+			this.operationsNum_++;
 		}
 
 	}
 
 	public static class ReaderThread extends TestThread {
 
-//		Random rand_ = new Random();
+		// Random rand_ = new Random();
 		HeapUpdateDoublesSketch ds_;
 		int operationsNum_ = 0;
 
@@ -208,18 +217,18 @@ public class ConccurencyFramworkTest {
 		@Override
 		public void doWork() throws Exception {
 
-				this.ds_.getQuantile(0.5);
-				this.operationsNum_++;
+			this.ds_.getQuantile(0.5);
+			this.operationsNum_++;
 		}
 	}
 
 	public static class MixedThread extends TestThread {
 
-//		Random rand_ = new Random();
+		// Random rand_ = new Random();
 		HeapUpdateDoublesSketch ds_;
 		double writeOps_ = 0;
 		long readOps_ = 0;
-		int i_ =  1;
+		int i_ = 1;
 
 		public MixedThread(TestContext ctx, HeapUpdateDoublesSketch ds) {
 			super(ctx);
@@ -229,16 +238,16 @@ public class ConccurencyFramworkTest {
 		@Override
 		public void doWork() throws Exception {
 
-				if ((i_ % 20) == 0) {
-					this.ds_.getQuantile(0.5);
-					this.readOps_++;
-				} else {
-					this.ds_.update(i_);
-					this.writeOps_++;
-				}
-				i_++;
-				
-//				LOG.info("writeOps_:" + this.writeOps_);
+			if ((i_ % 20) == 0) {
+				this.ds_.getQuantile(0.5);
+				this.readOps_++;
+			} else {
+				this.ds_.update(i_);
+				this.writeOps_++;
+			}
+			i_++;
+
+			// LOG.info("writeOps_:" + this.writeOps_);
 		}
 	}
 }

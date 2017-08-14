@@ -6,6 +6,7 @@
 package com.yahoo.sketches.theta;
 
 import com.yahoo.memory.Memory;
+import com.yahoo.memory.WritableMemory;
 
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -42,6 +43,13 @@ public class ConcurrentUnion implements Union {
       lock.writeLock().unlock();
     }
   }
+  
+  @Override public boolean isSameResource(final Memory mem) {
+	  
+	  return true;
+  }
+  
+
 
   @Override public void update(long l) {
     try {
@@ -105,15 +113,21 @@ public class ConcurrentUnion implements Union {
       lock.writeLock().unlock();
     }
   }
-
-  @Override public CompactSketch getResult(boolean b, Memory memory) {
-    try {
-      lock.readLock().lock();
-      return delegatee.getResult(b, memory);
-    } finally {
-      lock.readLock().unlock();
-    }
+  
+  @Override public CompactSketch getResult(boolean b, WritableMemory memory) {
+	  
+	  return delegatee.getResult(b, memory);
+	  
   }
+
+//  @Override public CompactSketch getResult(boolean b, Memory memory) {
+//    try {
+//      lock.readLock().lock();
+//      return delegatee.getResult(b, memory);
+//    } finally {
+//      lock.readLock().unlock();
+//    }
+//  }
 
   @Override public CompactSketch getResult() {
     try {

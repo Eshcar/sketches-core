@@ -22,11 +22,17 @@ import com.yahoo.sketches.SketchesArgumentException;
 
 final class SWSRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 
+	private class ThreadContext {
+		HeapUpdateDoublesSketch auxiliarySketch_;
+		int id_;
+	}
+
 	/**
 	 * 
 	 */
 
 	private DoublesArrayAccessor auxiliaryPropogateArray_;
+	private final ThreadLocal<ThreadContext> threadLocal_ = new ThreadLocal<ThreadContext>();
 
 	// **CONSTRUCTORS**********************************************************
 	public SWSRHeapUpdateDoublesSketch(final int k) {
@@ -43,6 +49,7 @@ final class SWSRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 		hqs.putBitPattern(1); // represent also the base buffer.
 		hqs.putMinValue(Double.POSITIVE_INFINITY);
 		hqs.putMaxValue(Double.NEGATIVE_INFINITY);
+		// hqs.threadLocal_ = new ThreadLocal<ThreadContext>();
 
 		hqs.auxiliaryPropogateArray_ = DoublesArrayAccessor.initialize(2 * k);
 		// resetBB();
@@ -140,6 +147,14 @@ final class SWSRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 			return getMaxValue();
 		}
 
+		ThreadContext threadContext = threadLocal_.get();
+		if (threadContext == null) {
+			threadContext = new ThreadContext();
+
+			threadContext.auxiliarySketch_ = HeapUpdateDoublesSketch.newInstance(k_);
+			threadLocal_.set(threadContext);
+		}
+
 		long bitP1 = getBitPattern(); // bitPattern_;
 		int BBCount = getBaseBufferCount(); // baseBufferCount_;
 
@@ -147,19 +162,36 @@ final class SWSRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 		int levels = Util.computeTotalLevels(legacyBitP1);
 		int spaceNeeded = getRequiredSpace(levels);
 
-		HeapUpdateDoublesSketch auxiliarySketch = HeapUpdateDoublesSketch.newInstance(k_);
-		auxiliarySketch.putCombinedBuffer(new double[spaceNeeded]);
+		HeapUpdateDoublesSketch auxiliarySketch = threadContext.auxiliarySketch_;
+		int currBufferSize = auxiliarySketch.getCombinedBufferItemCapacity();
+		if (spaceNeeded > currBufferSize) {
+			auxiliarySketch.putCombinedBuffer(new double[spaceNeeded]);
+		}
 
-		collectOnce(auxiliarySketch, -1, levels);
-		auxiliarySketch.putBitPattern(legacyBitP1);
+		// HeapUpdateDoublesSketch auxiliarySketch =
+		// HeapUpdateDoublesSketch.newInstance(k_);
+		// auxiliarySketch.putCombinedBuffer(new double[spaceNeeded]);
 
+		int diffLevels;
+		
 		if ((bitP1 & 1) > 0) {
+			collectOnce(auxiliarySketch, -1, 0); // collect the base buffer.
 			auxiliarySketch.putBaseBufferCount(BBCount);
 		} else {
 			auxiliarySketch.putBaseBufferCount(0);
 		}
 
-		long bitP2 = getBitPattern(); // bitPattern_;
+		if (levels > 0) {
+			long auxiliaryBitPattern = auxiliarySketch.getBitPattern();
+			
+			if (legacyBitP1 != auxiliaryBitPattern) {
+				diffLevels = bitPatternDiff(auxiliaryBitPattern, legacyBitP1, levels);
+				collect(auxiliarySketch, 0, diffLevels, legacyBitP1);
+				auxiliarySketch.putBitPattern(legacyBitP1);
+			}
+		}
+
+		long bitP2 = getBitPattern(); //
 		long legacyBitP2 = bitP2 >> 1;
 
 		while (legacyBitP1 != legacyBitP2) {
@@ -167,14 +199,14 @@ final class SWSRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 			levels = Util.computeTotalLevels(legacyBitP2);
 			spaceNeeded = getRequiredSpace(levels);
 
-			int auxiliarySketchCap = auxiliarySketch.getCombinedBufferItemCapacity();
+			currBufferSize = auxiliarySketch.getCombinedBufferItemCapacity();
 
-			if (spaceNeeded > auxiliarySketchCap) {
+			if (spaceNeeded > currBufferSize) {
 				// nothing from previous collect is valid in this case.
 				auxiliarySketch.putCombinedBuffer(new double[spaceNeeded]);
 			}
 
-			int diffLevels = bitPatternDiff(legacyBitP1, legacyBitP2, levels);
+			diffLevels = bitPatternDiff(legacyBitP1, legacyBitP2, levels);
 			collect(auxiliarySketch, 0, diffLevels, legacyBitP2);
 
 			legacyBitP1 = legacyBitP2;
@@ -315,7 +347,7 @@ final class SWSRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 
 	@Override
 	public void reset() {
-		final int baseBufAlloc = 2 * k_; 
+		final int baseBufAlloc = 2 * k_;
 
 		this.putN(0);
 		this.putCombinedBuffer(new double[baseBufAlloc]);
@@ -324,6 +356,7 @@ final class SWSRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 		this.putMinValue(Double.POSITIVE_INFINITY);
 		this.putMaxValue(Double.NEGATIVE_INFINITY);
 
+		// TODO: reset local thread
 	}
 
 }
