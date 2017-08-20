@@ -5,6 +5,10 @@ package com.yahoo.sketches.quantiles;
 
 import static com.yahoo.sketches.quantiles.Util.computeBitPattern;
 
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+
 import org.omg.CORBA.PRIVATE_MEMBER;
 
 import com.yahoo.sketches.SketchesArgumentException;
@@ -33,6 +37,11 @@ final class SWSRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 
 	private DoublesArrayAccessor auxiliaryPropogateArray_;
 	private final ThreadLocal<ThreadContext> threadLocal_ = new ThreadLocal<ThreadContext>();
+	private AtomicLong atomicBitPattern_ = new AtomicLong(1);
+	private AtomicInteger atomicBaseBufferCount_ = new AtomicInteger();
+//	ExecutorService executorPropogation;
+	
+	
 
 	// **CONSTRUCTORS**********************************************************
 	public SWSRHeapUpdateDoublesSketch(final int k) {
@@ -49,7 +58,7 @@ final class SWSRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 		hqs.putBitPattern(1); // represent also the base buffer.
 		hqs.putMinValue(Double.POSITIVE_INFINITY);
 		hqs.putMaxValue(Double.NEGATIVE_INFINITY);
-		// hqs.threadLocal_ = new ThreadLocal<ThreadContext>();
+//		hqs.executorService = Executors.newFixedThreadPool()
 
 		hqs.auxiliaryPropogateArray_ = DoublesArrayAccessor.initialize(2 * k);
 		// resetBB();
@@ -173,7 +182,7 @@ final class SWSRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 		// auxiliarySketch.putCombinedBuffer(new double[spaceNeeded]);
 
 		int diffLevels;
-		
+
 		if ((bitP1 & 1) > 0) {
 			collectOnce(auxiliarySketch, -1, 0); // collect the base buffer.
 			auxiliarySketch.putBaseBufferCount(BBCount);
@@ -183,7 +192,7 @@ final class SWSRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 
 		if (levels > 0) {
 			long auxiliaryBitPattern = auxiliarySketch.getBitPattern();
-			
+
 			if (legacyBitP1 != auxiliaryBitPattern) {
 				diffLevels = bitPatternDiff(auxiliaryBitPattern, legacyBitP1, levels);
 				collect(auxiliarySketch, 0, diffLevels, legacyBitP1);
@@ -358,5 +367,26 @@ final class SWSRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 
 		// TODO: reset local thread
 	}
+
+	@Override
+	void putBaseBufferCount(final int baseBufferCount) {
+		atomicBaseBufferCount_.set(baseBufferCount);
+	}
+
+	@Override
+	void putBitPattern(final long bitPattern) {
+		atomicBitPattern_.set(bitPattern);
+	}
+	
+	  @Override
+	  int getBaseBufferCount() {
+	    return atomicBaseBufferCount_.get();
+	  }
+
+
+	  @Override
+	  long getBitPattern() {
+	    return atomicBitPattern_.get();
+	  }
 
 }

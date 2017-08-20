@@ -25,14 +25,15 @@ public class ConccurencyFramworkTest {
 		// "ORIGINAL", "SWWR_BASIC",
 		// "GLOBAL_LOCK, 'MWMR"
 
-		 return new Object[] {"LOCK_BASE_OIGENAL" };
+		// return new Object[] {"LOCK_BASE_OIGENAL" };
 		// return new Object[] {"ORIGINAL" };
-//		return new Object[] { "SWMR_BASIC" };
+		// return new Object[] { "SWMR_BASIC" };
+		return new Object[] { "MWMR_BASIC" };
 	}
 
 	enum SketchType {
 		// ORIGINAL, SWWR_BASIC, GLOBAL_LOCK, MWMR
-		ORIGINAL, SWMR_BASIC, LOCK_BASE_OIGENAL
+		ORIGINAL, SWMR_BASIC, LOCK_BASE_OIGENAL, MWMR_BASIC
 	}
 
 	enum ThreadType {
@@ -60,12 +61,17 @@ public class ConccurencyFramworkTest {
 		case SWMR_BASIC:
 			ds_ = SWSRHeapUpdateDoublesSketch.newInstance(k_);
 			LOG.info(
-					"=============================================SWMR_BASIC=============================================");
+					"=============================================SWMR_BASIC===========================================");
 			break;
 		case LOCK_BASE_OIGENAL:
 			ds_ = new LockBasedHeapUpdateDoublesSketch(k_);
 			LOG.info(
-					"=============================================LOCK_BASE_OIGENAL=============================================");
+					"=============================================LOCK_BASE_OIGENAL====================================");
+			break;
+		case MWMR_BASIC:
+			ds_ = MWMRHeapUpdateDoublesSketch.newInstance(k_, 3, 3);
+			LOG.info(
+					"=============================================MWMR_BASIC===========================================");
 			break;
 		default:
 			assert (false);
@@ -95,28 +101,42 @@ public class ConccurencyFramworkTest {
 	//
 	// }
 
+	// @Test
+	// public void SWMR() throws Exception {
+	// LOG.info("=====================Test SWMR:======================");
+	//
+	// switch (type_) {
+	// case ORIGINAL:
+	// LOG.info("Type = " + type_ + " Test skipped");
+	// break;
+	// default:
+	// runTest(1, 1, 0, 100);
+	// ds_.reset();
+	// runTest(1, 2, 0, 100);
+	// ds_.reset();
+	// runTest(1, 3, 0, 100);
+	// ds_.reset();
+	// runTest(1, 3, 0, 100);
+	// ds_.reset();
+	// runTest(1, 3, 0, 100);
+	// ds_.reset();
+	// runTest(1, 3, 0, 100);
+	// ds_.reset();
+	// break;
+	// }
+	// }
+
 	@Test
-	public void SWMR() throws Exception {
-		LOG.info("=====================Test SWMR:======================");
+	public void MWMR() throws Exception {
+		LOG.info("=====================Test MWMR:======================");
 
 		switch (type_) {
 		case ORIGINAL:
+		case SWMR_BASIC:
 			LOG.info("Type = " + type_ + " Test skipped");
 			break;
 		default:
-			runTest(1, 1, 0, 100);
-			ds_.reset();
-			runTest(1, 1, 0, 100);
-			ds_.reset();
-			runTest(1, 1, 0, 100);
-			ds_.reset();
-			runTest(1, 1, 0, 100);
-			ds_.reset();
-			runTest(1, 1, 0, 100);
-			ds_.reset();
-			runTest(1, 1, 0, 100);
-			ds_.reset();
-			break;
+			runTest(1, 0, 0, 10);
 		}
 	}
 
