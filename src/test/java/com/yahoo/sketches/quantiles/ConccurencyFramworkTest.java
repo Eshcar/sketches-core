@@ -69,7 +69,7 @@ public class ConccurencyFramworkTest {
 					"=============================================LOCK_BASE_OIGENAL====================================");
 			break;
 		case MWMR_BASIC:
-			ds_ = MWMRHeapUpdateDoublesSketch.newInstance(k_, 3, 3);
+			ds_ = MWMRHeapUpdateDoublesSketch.newInstance(k_, 1, 1);
 			LOG.info(
 					"=============================================MWMR_BASIC===========================================");
 			break;
@@ -137,6 +137,7 @@ public class ConccurencyFramworkTest {
 			break;
 		default:
 			runTest(1, 0, 0, 10);
+			LOG.info("writer idle = " + ds_.getDebug_());
 		}
 	}
 

@@ -48,7 +48,14 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 	private DoublesArrayAccessor treeBuffer_;
 	private AtomicInteger[] treeBitPattern_;
 	private AtomicInteger[] treeReadyBitPattern_;
-	AtomicInteger PropogationLock_;
+	private AtomicInteger PropogationLock_;
+
+	public int debug_ = 0;
+	
+	@Override
+	public int getDebug_() {
+		return debug_;
+	}
 
 	private static final Log LOG = LogFactory.getLog(MWMRHeapUpdateDoublesSketch.class);
 
@@ -139,6 +146,8 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 
 			int baseTreeNodeNum = getFreeTreeBasePlace(numberOfTreeLevels_, threadWrtieContext);
 			assert (treeBaseBitPattern_[baseTreeNodeNum - 1].get() == 0);
+
+			// LOG.info("baseTreeNodeNum = " + baseTreeNodeNum);
 
 			int dstInd = (baseTreeNodeNum - 1) * 2 * k_;
 			System.arraycopy(threadWrtieContext.buffer_, 0, TreeBaseBuffer_.getBuffer_(), dstInd, 2 * k_);
@@ -264,8 +273,9 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 			if (treeBaseBitPattern_[curr - 1].get() == 0) {
 				threadWrtieContext.NextBaseTreeNodeNum_ = next;
 				return curr;
+			} else {
+				debug_++;
 			}
-
 			curr = next;
 
 			// LOG.info("in while 1: curr = " + curr);
@@ -547,6 +557,9 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 				return;
 			}
 
+			// long threadId = Thread.currentThread().getId();
+			// LOG.info("Thread # " + threadId + " is doing this task");
+
 			PropogationLock.set(1);
 
 			// copy to empty place in combained buffer
@@ -586,7 +599,8 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 			// update bit pattern with binary-arithmetic ripple carry
 			long newBitPattern = bitPattern + (1L << startingLevel);
 			assert newBitPattern == computeBitPattern(k_, newN); // internal consistency check
-//			assert newBitPattern == ds.getBitPattern() + 1  || newBitPattern = (1L << startingLevel);
+			// assert newBitPattern == ds.getBitPattern() + 1 || newBitPattern = (1L <<
+			// startingLevel);
 
 			ds.putBitPattern(newBitPattern);
 			// baseBufferCount_ = 0;

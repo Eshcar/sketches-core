@@ -148,6 +148,10 @@ public class HeapUpdateDoublesSketch extends UpdateDoublesSketch {
     hds.srcMemoryToCombinedBuffer(srcMem, serVer, srcIsCompact, combBufCap);
     return hds;
   }
+  
+	public int getDebug_() {
+		return -7;
+	}
 
   @Override
   public void update(final double dataItem) {
