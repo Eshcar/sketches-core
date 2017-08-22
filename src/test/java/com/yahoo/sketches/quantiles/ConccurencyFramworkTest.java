@@ -136,7 +136,7 @@ public class ConccurencyFramworkTest {
 			LOG.info("Type = " + type_ + " Test skipped");
 			break;
 		default:
-			runTest(1, 0, 0, 10);
+			runTest(1, 1	, 0, 10);
 			LOG.info("writer idle = " + ds_.getDebug_());
 		}
 	}
@@ -166,11 +166,12 @@ public class ConccurencyFramworkTest {
 			ctx.addThread(mixed);
 		}
 
+		
+		
 		ctx.startThreads();
 		ctx.waitFor(secondsToRun * 1000);
 		ctx.stop();
 
-		LOG.info("Finished test. ");
 
 		int totalReads = 0;
 		int totalWrites = 0;
@@ -219,6 +220,7 @@ public class ConccurencyFramworkTest {
 		public void doWork() throws Exception {
 
 			this.ds_.update(operationsNum_);
+//			LOG.info("Writing. ");
 			this.operationsNum_++;
 		}
 
@@ -237,8 +239,19 @@ public class ConccurencyFramworkTest {
 
 		@Override
 		public void doWork() throws Exception {
+			
+//			double[] a = new double[1000];
+//			
+//			for (int i = 0; i < 1000 ; i++) {
+//				a[i] = i;
+//			}
+			
 
 			this.ds_.getQuantile(0.5);
+
+ 			
+			
+//			LOG.info("Reading. ");
 			this.operationsNum_++;
 		}
 	}

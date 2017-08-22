@@ -51,7 +51,7 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 	private AtomicInteger PropogationLock_;
 
 	public int debug_ = 0;
-	
+
 	@Override
 	public int getDebug_() {
 		return debug_;
@@ -167,6 +167,13 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 	// TODO: check the logic.
 	@Override
 	public double getQuantile(final double fraction) {
+
+		// double[] a = new double[1000];
+		//
+		// for (int i = 0; i < 100 ; i++) {
+		// a[i] = i;
+		// }
+
 		if ((fraction < 0.0) || (fraction > 1.0)) {
 			throw new SketchesArgumentException("Fraction cannot be less than zero or greater than 1.0");
 		}
@@ -186,9 +193,7 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 		}
 
 		long bitP1 = getBitPattern(); // bitPattern_;
-		// int BBCount = getBaseBufferCount(); // baseBufferCount_;
 
-		// long legacyBitP1 = bitP1 >> 1;
 		int levels = Util.computeTotalLevels(bitP1);
 		int spaceNeeded = getRequiredSpace(levels);
 
@@ -198,18 +203,7 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 			auxiliarySketch.putCombinedBuffer(new double[spaceNeeded]);
 		}
 
-		// HeapUpdateDoublesSketch auxiliarySketch =
-		// HeapUpdateDoublesSketch.newInstance(k_);
-		// auxiliarySketch.putCombinedBuffer(new double[spaceNeeded]);
-
 		int diffLevels;
-
-		// if ((bitP1 & 1) > 0) {
-		// collectOnce(auxiliarySketch, -1, 0); // collect the base buffer.
-		// auxiliarySketch.putBaseBufferCount(BBCount);
-		// } else {
-		// auxiliarySketch.putBaseBufferCount(0);
-		// }
 
 		if (levels > 0) {
 			long auxiliaryBitPattern = auxiliarySketch.getBitPattern();
@@ -222,9 +216,15 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 		}
 
 		long bitP2 = getBitPattern(); //
-		// long legacyBitP2 = bitP2 >> 1;
 
 		while (bitP1 != bitP2) {
+
+			long endTime = System.currentTimeMillis() + 1000;
+			while (true) {
+				long left = endTime - System.currentTimeMillis();
+				if (left <= 0)
+					break;
+			}
 
 			levels = Util.computeTotalLevels(bitP2);
 			spaceNeeded = getRequiredSpace(levels);
@@ -241,13 +241,11 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 
 			bitP1 = bitP2;
 			bitP2 = getBitPattern(); // bitPattern_;
-			// legacyBitP2 = bitP2 >> 1;
-			// auxiliarySketch.putBaseBufferCount(0);
+
 			auxiliarySketch.putBitPattern(bitP1);
 		}
 
-		long n = setNFromBitPattern(bitP1); // does not include the base buffer;
-		// n += auxiliarySketch.getBaseBufferCount();
+		long n = setNFromBitPattern(bitP1);
 		auxiliarySketch.putN(n);
 
 		final DoublesAuxiliary aux = new DoublesAuxiliary(auxiliarySketch);

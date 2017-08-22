@@ -68,6 +68,7 @@ public class ConcurrencyTestUtils {
 	        synchronized (this) {
 		          stopped_ = true;
 		        }
+	        
 			for (TestThread t : testThreads_) {
 				t.join();
 			}
@@ -119,16 +120,19 @@ public class ConcurrencyTestUtils {
 
 		public void run() {
 			
-			while (!ctx_.start_) {}
+			while (!ctx_.start_) {
+			}
+			
 			
 			try {
 				while (!ctx_.stopped_) {
-//					LOG.info("Hi" );
+					
 					doWork();
 				}
 			} catch (Throwable t) {
 				ctx_.threadFailed(t);
 			}
+			
 			
 		}
 
