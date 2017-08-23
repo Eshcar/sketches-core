@@ -3,34 +3,33 @@ package utils;
 import java.util.HashSet;
 
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
-
 
 public class ConcurrencyTestUtils {
 
 	private static final Log LOG = LogFactory.getLog(ConcurrencyTestUtils.class);
 
-//	public static class MyResult {
-//
-//		public int readsNum_;
-//		public int writesNum_;
-//		public int readLatency_;
-//		public int writesTPut_;
-//
-//	}
+	// public static class MyResult {
+	//
+	// public int readsNum_;
+	// public int writesNum_;
+	// public int readLatency_;
+	// public int writesTPut_;
+	//
+	// }
 
 	public static class TestContext {
 
 		private Throwable err_ = null;
-		private boolean readAlways_ = false;
-		private int readNum_ = 0;
+//		private boolean readAlways_ = false;
+//		private int readNum_ = 0;
 		private Set<TestThread> testThreads_ = new HashSet<TestThread>();
-		private boolean stopped_ = false;
-		private boolean start_ = false;
-//		private Set<MyResult> results_ = new HashSet<MyResult>();
+//		private boolean stopped_ = false;
+//		private boolean start_ = false;
+		// private Set<MyResult> results_ = new HashSet<MyResult>();
 
 		public void addThread(TestThread t) {
 			testThreads_.add(t);
@@ -40,7 +39,11 @@ public class ConcurrencyTestUtils {
 			for (TestThread t : testThreads_) {
 				t.start();
 			}
-			start_ = true; 
+			
+			
+			for (TestThread t : testThreads_) {
+				t.startThread();
+			}
 		}
 
 		private synchronized void checkException() throws Exception {
@@ -48,7 +51,7 @@ public class ConcurrencyTestUtils {
 				throw new RuntimeException("Deferred", err_);
 			}
 		}
-		
+
 		public synchronized void threadFailed(Throwable t) {
 			if (err_ == null)
 				err_ = t;
@@ -56,54 +59,57 @@ public class ConcurrencyTestUtils {
 			notify();
 		}
 
-		public synchronized void needToRead() {
-			readNum_++;
-		}
-
-//		public synchronized void addResult(MyResult res) {
-//			results_.add(res);
+//		public synchronized void needToRead() {
+//			readNum_++;
 //		}
 
+		// public synchronized void addResult(MyResult res) {
+		// results_.add(res);
+		// }
+
 		public void stop() throws Exception {
-	        synchronized (this) {
-		          stopped_ = true;
-		        }
-	        
+//			synchronized (this) {
+//				stopped_ = true;
+//			}
+			
+			for (TestThread t : testThreads_) {
+				t.stopThread();
+			}
+
 			for (TestThread t : testThreads_) {
 				t.join();
 			}
 			checkException();
 		}
-		
-		
-	    public void waitFor(long millis) throws Exception {
-	        long endTime = System.currentTimeMillis() + millis;
-	        while (!stopped_) {
-	          long left = endTime - System.currentTimeMillis();
-	          if (left <= 0) break;
-//	          synchronized (this) {
-//	            checkException();
-//	            wait(left);
-//	          }
-	        }
-	      }
-		
-		public boolean isReadAlways() {
-			return readAlways_;
+
+		public void waitFor(long millis) throws Exception {
+			long endTime = System.currentTimeMillis() + millis;
+			while (true) {
+				long left = endTime - System.currentTimeMillis();
+				if (left <= 0)
+					break;
+				// synchronized (this) {
+				// checkException();
+				// wait(left);
+				// }
+			}
 		}
-		
-		public void setReadAlways() {
-			 readAlways_ = true;
-		}
-		
-		
-		public int getReadNum() {
-			return readNum_;
-		}
-		
-		public void incrementReadNum() {
-			readNum_++;
-		}
+
+//		public boolean isReadAlways() {
+//			return readAlways_;
+//		}
+//
+//		public void setReadAlways() {
+//			readAlways_ = true;
+//		}
+//
+//		public int getReadNum() {
+//			return readNum_;
+//		}
+//
+//		public void incrementReadNum() {
+//			readNum_++;
+//		}
 
 	}
 
@@ -112,28 +118,36 @@ public class ConcurrencyTestUtils {
 	 * through.
 	 */
 	public static abstract class TestThread extends Thread {
-		protected final TestContext ctx_;
+		// protected final TestContext ctx_;
+		private AtomicBoolean stop_ = new AtomicBoolean(false);
+		private AtomicBoolean start_ = new AtomicBoolean(false);
 
-		public TestThread(TestContext ctx) {
-			this.ctx_ = ctx;
+		// public TestThread(TestContext ctx) {
+		public TestThread() {
+//			this.ctx_ = ctx;
 		}
 
 		public void run() {
-			
-			while (!ctx_.start_) {
-			}
-			
-			
+
+			 while (!start_.get()) {}
+
 			try {
-				while (!ctx_.stopped_) {
-					
+				while (!stop_.get()) {
+
 					doWork();
 				}
 			} catch (Throwable t) {
-				ctx_.threadFailed(t);
+//				ctx_.threadFailed(t);
 			}
-			
-			
+
+		}
+
+		public void stopThread() {
+			stop_.set(true);
+		}
+		
+		public void startThread() {
+			start_.set(true);
 		}
 
 		public abstract void doWork() throws Exception;

@@ -180,86 +180,86 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 		// a[i] = i;
 		// }
 		
-		long endTime = System.currentTimeMillis() + 1000;
-		while (true) {
-			long left = endTime - System.currentTimeMillis();
-			if (left <= 0)
-				break;
-		}
-		
-		return 0;
+//		long endTime = System.currentTimeMillis() + 1000;
+//		while (true) {
+//			long left = endTime - System.currentTimeMillis();
+//			if (left <= 0)
+//				break;
+//		}
+//		
+//		return 0;
 
-//
-//		if ((fraction < 0.0) || (fraction > 1.0)) {
-//			throw new SketchesArgumentException("Fraction cannot be less than zero or greater than 1.0");
-//		}
-//
-//		if (fraction == 0.0) {
-//			return getMinValue();
-//		} else if (fraction == 1.0) {
-//			return getMaxValue();
-//		}
-//
-//		ThreadReadContext threadReadContext = threadReadLocal_.get();
-//		if (threadReadContext == null) {
-//			threadReadContext = new ThreadReadContext();
-//
-//			threadReadContext.auxiliarySketch_ = HeapUpdateDoublesSketch.newInstance(k_);
-//			threadReadLocal_.set(threadReadContext);
-//		}
-//
-//		long bitP1 = getBitPattern(); // bitPattern_;
-//
-//		int levels = Util.computeTotalLevels(bitP1);
-//		int spaceNeeded = getRequiredSpace(levels);
-//
-//		HeapUpdateDoublesSketch auxiliarySketch = threadReadContext.auxiliarySketch_;
-//		int currBufferSize = auxiliarySketch.getCombinedBufferItemCapacity();
-//		if (spaceNeeded > currBufferSize) {
-//			auxiliarySketch.putCombinedBuffer(new double[spaceNeeded]);
-//		}
-//
-//		int diffLevels;
-//
-//		if (levels > 0) {
-//			long auxiliaryBitPattern = auxiliarySketch.getBitPattern();
-//
-//			if (bitP1 != auxiliaryBitPattern) {
-//				diffLevels = bitPatternDiff(auxiliaryBitPattern, bitP1, levels);
-//				collect(auxiliarySketch, 0, diffLevels, bitP1);
-//				auxiliarySketch.putBitPattern(bitP1);
-//			}
-//		}
-//
-//		long bitP2 = getBitPattern(); //
-//
-//		while (bitP1 != bitP2) {
-//
-//
-//			levels = Util.computeTotalLevels(bitP2);
-//			spaceNeeded = getRequiredSpace(levels);
-//
-//			currBufferSize = auxiliarySketch.getCombinedBufferItemCapacity();
-//
-//			if (spaceNeeded > currBufferSize) {
-//				// nothing from previous collect is valid in this case.
-//				auxiliarySketch.putCombinedBuffer(new double[spaceNeeded]);
-//			}
-//
-//			diffLevels = bitPatternDiff(bitP1, bitP2, levels);
-//			collect(auxiliarySketch, 0, diffLevels, bitP2);
-//
-//			bitP1 = bitP2;
-//			bitP2 = getBitPattern(); // bitPattern_;
-//
-//			auxiliarySketch.putBitPattern(bitP1);
-//		}
-//
-//		long n = setNFromBitPattern(bitP1);
-//		auxiliarySketch.putN(n);
-//
-//		final DoublesAuxiliary aux = new DoublesAuxiliary(auxiliarySketch);
-//		return aux.getQuantile(fraction);
+
+		if ((fraction < 0.0) || (fraction > 1.0)) {
+			throw new SketchesArgumentException("Fraction cannot be less than zero or greater than 1.0");
+		}
+
+		if (fraction == 0.0) {
+			return getMinValue();
+		} else if (fraction == 1.0) {
+			return getMaxValue();
+		}
+
+		ThreadReadContext threadReadContext = threadReadLocal_.get();
+		if (threadReadContext == null) {
+			threadReadContext = new ThreadReadContext();
+
+			threadReadContext.auxiliarySketch_ = HeapUpdateDoublesSketch.newInstance(k_);
+			threadReadLocal_.set(threadReadContext);
+		}
+
+		long bitP1 = getBitPattern(); // bitPattern_;
+
+		int levels = Util.computeTotalLevels(bitP1);
+		int spaceNeeded = getRequiredSpace(levels);
+
+		HeapUpdateDoublesSketch auxiliarySketch = threadReadContext.auxiliarySketch_;
+		int currBufferSize = auxiliarySketch.getCombinedBufferItemCapacity();
+		if (spaceNeeded > currBufferSize) {
+			auxiliarySketch.putCombinedBuffer(new double[spaceNeeded]);
+		}
+
+		int diffLevels;
+
+		if (levels > 0) {
+			long auxiliaryBitPattern = auxiliarySketch.getBitPattern();
+
+			if (bitP1 != auxiliaryBitPattern) {
+				diffLevels = bitPatternDiff(auxiliaryBitPattern, bitP1, levels);
+				collect(auxiliarySketch, 0, diffLevels, bitP1);
+				auxiliarySketch.putBitPattern(bitP1);
+			}
+		}
+
+		long bitP2 = getBitPattern(); //
+
+		while (bitP1 != bitP2) {
+
+
+			levels = Util.computeTotalLevels(bitP2);
+			spaceNeeded = getRequiredSpace(levels);
+
+			currBufferSize = auxiliarySketch.getCombinedBufferItemCapacity();
+
+			if (spaceNeeded > currBufferSize) {
+				// nothing from previous collect is valid in this case.
+				auxiliarySketch.putCombinedBuffer(new double[spaceNeeded]);
+			}
+
+			diffLevels = bitPatternDiff(bitP1, bitP2, levels);
+			collect(auxiliarySketch, 0, diffLevels, bitP2);
+
+			bitP1 = bitP2;
+			bitP2 = getBitPattern(); // bitPattern_;
+
+			auxiliarySketch.putBitPattern(bitP1);
+		}
+
+		long n = setNFromBitPattern(bitP1);
+		auxiliarySketch.putN(n);
+
+		final DoublesAuxiliary aux = new DoublesAuxiliary(auxiliarySketch);
+		return aux.getQuantile(fraction);
 
 	}
 

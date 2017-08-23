@@ -71,7 +71,7 @@ public class ConccurencyFramworkTest {
 					"=============================================LOCK_BASE_OIGENAL====================================");
 			break;
 		case MWMR_BASIC:
-			ds_ = MWMRHeapUpdateDoublesSketch.newInstance(k_, 1, 2, 2);
+			ds_ = MWMRHeapUpdateDoublesSketch.newInstance(k_, 1, 2, 1);
 			LOG.info(
 					"=============================================MWMR_BASIC===========================================");
 			break;
@@ -138,7 +138,7 @@ public class ConccurencyFramworkTest {
 			LOG.info("Type = " + type_ + " Test skipped");
 			break;
 		default:
-			runTest(2, 0, 0, 10);
+			runTest(1, 1, 0, 10);
 			LOG.info("writer idle = " + ds_.getDebug_());
 		}
 	}
@@ -149,21 +149,21 @@ public class ConccurencyFramworkTest {
 
 		List<WriterThread> writersList = Lists.newArrayList();
 		for (int i = 0; i < writersNum; i++) {
-			WriterThread writer = new WriterThread(ctx, ds_);
+			WriterThread writer = new WriterThread(ds_);
 			writersList.add(writer);
 			ctx.addThread(writer);
 		}
 
 		List<ReaderThread> readersList = Lists.newArrayList();
 		for (int i = 0; i < readersNum; i++) {
-			ReaderThread reader = new ReaderThread(ctx, ds_);
+			ReaderThread reader = new ReaderThread(ds_);
 			readersList.add(reader);
 			ctx.addThread(reader);
 		}
 
 		List<MixedThread> mixedList = Lists.newArrayList();
 		for (int i = 0; i < mixedNum; i++) {
-			MixedThread mixed = new MixedThread(ctx, ds_);
+			MixedThread mixed = new MixedThread(ds_);
 			mixedList.add(mixed);
 			ctx.addThread(mixed);
 		}
@@ -197,13 +197,13 @@ public class ConccurencyFramworkTest {
 		for (WriterThread writer : writersList) {
 			totalWrites += writer.operationsNum_;
 		}
-		LOG.info("writeTput = " + (totalWrites / secondsToRun));
+		LOG.info("writeTput = " + ( (totalWrites / secondsToRun)) / 1000000 + " millions per second");
 
 		LOG.info("Read threads:");
 		for (ReaderThread reader : readersList) {
 			totalReads += reader.operationsNum_;
 		}
-		LOG.info("readTput = " + (totalReads / secondsToRun));
+		LOG.info("readTput = " + ((totalReads / secondsToRun)) / 1000000.0 + " millions per second");
 
 	}
 
@@ -212,10 +212,10 @@ public class ConccurencyFramworkTest {
 		HeapUpdateDoublesSketch ds_;
 		int operationsNum_ = 0;
 
-		public WriterThread(TestContext ctx, HeapUpdateDoublesSketch ds) {
-			super(ctx);
+//		public WriterThread(TestContext ctx, HeapUpdateDoublesSketch ds) {
+		public WriterThread(HeapUpdateDoublesSketch ds) {
+			super();
 			this.ds_ = ds;
-
 		}
 
 		@Override
@@ -234,8 +234,8 @@ public class ConccurencyFramworkTest {
 		HeapUpdateDoublesSketch ds_;
 		int operationsNum_ = 0;
 
-		public ReaderThread(TestContext ctx, HeapUpdateDoublesSketch ds) {
-			super(ctx);
+		public ReaderThread(HeapUpdateDoublesSketch ds) {
+			super();
 			this.ds_ = ds;
 		}
 
@@ -248,13 +248,13 @@ public class ConccurencyFramworkTest {
 //				a[i] = i;
 //			}
 			
-			long endTime = System.currentTimeMillis() + 1000;
+			long endTime = System.currentTimeMillis() + 10;
 			while (true) {
 				long left = endTime - System.currentTimeMillis();
 				if (left <= 0)
 					break;
 			}
-			
+//			
 
 			
 //			this.ds_.getQuantile(0.5);
@@ -273,8 +273,8 @@ public class ConccurencyFramworkTest {
 		long readOps_ = 0;
 		int i_ = 1;
 
-		public MixedThread(TestContext ctx, HeapUpdateDoublesSketch ds) {
-			super(ctx);
+		public MixedThread(HeapUpdateDoublesSketch ds) {
+			super();
 			this.ds_ = ds;
 		}
 
