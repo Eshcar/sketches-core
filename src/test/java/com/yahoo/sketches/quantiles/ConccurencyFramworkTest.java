@@ -40,6 +40,8 @@ public class ConccurencyFramworkTest {
 		MIXED, FIXED
 	}
 
+	
+	
 	private HeapUpdateDoublesSketch ds_;
 	private final SketchType type_;
 	private static final int k_ = 128;
@@ -69,7 +71,7 @@ public class ConccurencyFramworkTest {
 					"=============================================LOCK_BASE_OIGENAL====================================");
 			break;
 		case MWMR_BASIC:
-			ds_ = MWMRHeapUpdateDoublesSketch.newInstance(k_, 1, 1);
+			ds_ = MWMRHeapUpdateDoublesSketch.newInstance(k_, 1, 2, 2);
 			LOG.info(
 					"=============================================MWMR_BASIC===========================================");
 			break;
@@ -136,7 +138,7 @@ public class ConccurencyFramworkTest {
 			LOG.info("Type = " + type_ + " Test skipped");
 			break;
 		default:
-			runTest(1, 1	, 0, 10);
+			runTest(2, 0, 0, 10);
 			LOG.info("writer idle = " + ds_.getDebug_());
 		}
 	}
@@ -246,12 +248,19 @@ public class ConccurencyFramworkTest {
 //				a[i] = i;
 //			}
 			
+			long endTime = System.currentTimeMillis() + 1000;
+			while (true) {
+				long left = endTime - System.currentTimeMillis();
+				if (left <= 0)
+					break;
+			}
+			
 
-			this.ds_.getQuantile(0.5);
+			
+//			this.ds_.getQuantile(0.5);
 
  			
 			
-//			LOG.info("Reading. ");
 			this.operationsNum_++;
 		}
 	}

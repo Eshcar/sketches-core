@@ -43,12 +43,15 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 	private ExecutorService executorSevice_;
 	private int numberOfThreads_;
 	private int numberOfTreeLevels_;
+	private int numberOfWriters_;
 	private DoublesArrayAccessor TreeBaseBuffer_;
 	private AtomicInteger[] treeBaseBitPattern_;
 	private DoublesArrayAccessor treeBuffer_;
 	private AtomicInteger[] treeBitPattern_;
 	private AtomicInteger[] treeReadyBitPattern_;
 	private AtomicInteger PropogationLock_;
+	
+	private AtomicInteger WritersID = new AtomicInteger();
 
 	public int debug_ = 0;
 
@@ -64,7 +67,7 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 		super(k); // Checks k
 	}
 
-	static MWMRHeapUpdateDoublesSketch newInstance(final int k, int numberOfThreads, int numberOfTreeLevels) {
+	static MWMRHeapUpdateDoublesSketch newInstance(final int k, int numberOfThreads, int numberOfTreeLevels, int numberOfWriters) {
 
 		final MWMRHeapUpdateDoublesSketch hqs = new MWMRHeapUpdateDoublesSketch(k);
 		final int baseBufAlloc = 2 * k; // the min is important
@@ -77,6 +80,7 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 		hqs.putMaxValue(Double.NEGATIVE_INFINITY);
 		hqs.numberOfThreads_ = numberOfThreads;
 		hqs.numberOfTreeLevels_ = numberOfTreeLevels;
+		hqs.numberOfWriters_ = numberOfWriters;
 		hqs.executorSevice_ = Executors.newFixedThreadPool(numberOfThreads);
 
 		int numberOfLeaves = numberOfLeaves(numberOfTreeLevels);
@@ -129,28 +133,30 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 		}
 		// Do we need a fence here?
 
-		ThreadWriteContext threadWrtieContext = threadWriteLocal_.get();
-		if (threadWrtieContext == null) {
-			threadWrtieContext = new ThreadWriteContext();
+		ThreadWriteContext threadWriteContext = threadWriteLocal_.get();
+		if (threadWriteContext == null) {
+			threadWriteContext = new ThreadWriteContext();
 
-			threadWrtieContext.index_ = 0;
-			threadWrtieContext.buffer_ = new double[2 * k_];
-			threadWrtieContext.NextBaseTreeNodeNum_ = 1;
-			threadWriteLocal_.set(threadWrtieContext);
+			threadWriteContext.index_ = 0;
+			threadWriteContext.buffer_ = new double[2 * k_];
+			threadWriteContext.id_ = WritersID.incrementAndGet();
+			threadWriteContext.NextBaseTreeNodeNum_ = threadWriteContext.id_;
+			
+			threadWriteLocal_.set(threadWriteContext);
 		}
 
-		threadWrtieContext.buffer_[threadWrtieContext.index_] = dataItem;
-		threadWrtieContext.index_++;
+		threadWriteContext.buffer_[threadWriteContext.index_] = dataItem;
+		threadWriteContext.index_++;
 
-		if (threadWrtieContext.index_ == (2 * k_)) {
+		if (threadWriteContext.index_ == (2 * k_)) {
 
-			int baseTreeNodeNum = getFreeTreeBasePlace(numberOfTreeLevels_, threadWrtieContext);
+			int baseTreeNodeNum = getFreeTreeBasePlace(numberOfTreeLevels_, threadWriteContext);
 			assert (treeBaseBitPattern_[baseTreeNodeNum - 1].get() == 0);
 
 			// LOG.info("baseTreeNodeNum = " + baseTreeNodeNum);
 
 			int dstInd = (baseTreeNodeNum - 1) * 2 * k_;
-			System.arraycopy(threadWrtieContext.buffer_, 0, TreeBaseBuffer_.getBuffer_(), dstInd, 2 * k_);
+			System.arraycopy(threadWriteContext.buffer_, 0, TreeBaseBuffer_.getBuffer_(), dstInd, 2 * k_);
 			treeBaseBitPattern_[baseTreeNodeNum - 1].set(1);
 
 			BackgroundBaseTreeWriter job = new BackgroundBaseTreeWriter("SORT_ZIP", baseTreeNodeNum, this);
@@ -159,7 +165,7 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 			// numberOfLeaves =
 			// MWMRHeapUpdateDoublesSketch.numberOfLeaves(numberOfTreeLevels_);
 
-			threadWrtieContext.index_ = 0;
+			threadWriteContext.index_ = 0;
 		}
 
 	}
@@ -173,83 +179,87 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 		// for (int i = 0; i < 100 ; i++) {
 		// a[i] = i;
 		// }
-
-		if ((fraction < 0.0) || (fraction > 1.0)) {
-			throw new SketchesArgumentException("Fraction cannot be less than zero or greater than 1.0");
+		
+		long endTime = System.currentTimeMillis() + 1000;
+		while (true) {
+			long left = endTime - System.currentTimeMillis();
+			if (left <= 0)
+				break;
 		}
+		
+		return 0;
 
-		if (fraction == 0.0) {
-			return getMinValue();
-		} else if (fraction == 1.0) {
-			return getMaxValue();
-		}
-
-		ThreadReadContext threadReadContext = threadReadLocal_.get();
-		if (threadReadContext == null) {
-			threadReadContext = new ThreadReadContext();
-
-			threadReadContext.auxiliarySketch_ = HeapUpdateDoublesSketch.newInstance(k_);
-			threadReadLocal_.set(threadReadContext);
-		}
-
-		long bitP1 = getBitPattern(); // bitPattern_;
-
-		int levels = Util.computeTotalLevels(bitP1);
-		int spaceNeeded = getRequiredSpace(levels);
-
-		HeapUpdateDoublesSketch auxiliarySketch = threadReadContext.auxiliarySketch_;
-		int currBufferSize = auxiliarySketch.getCombinedBufferItemCapacity();
-		if (spaceNeeded > currBufferSize) {
-			auxiliarySketch.putCombinedBuffer(new double[spaceNeeded]);
-		}
-
-		int diffLevels;
-
-		if (levels > 0) {
-			long auxiliaryBitPattern = auxiliarySketch.getBitPattern();
-
-			if (bitP1 != auxiliaryBitPattern) {
-				diffLevels = bitPatternDiff(auxiliaryBitPattern, bitP1, levels);
-				collect(auxiliarySketch, 0, diffLevels, bitP1);
-				auxiliarySketch.putBitPattern(bitP1);
-			}
-		}
-
-		long bitP2 = getBitPattern(); //
-
-		while (bitP1 != bitP2) {
-
-			long endTime = System.currentTimeMillis() + 1000;
-			while (true) {
-				long left = endTime - System.currentTimeMillis();
-				if (left <= 0)
-					break;
-			}
-
-			levels = Util.computeTotalLevels(bitP2);
-			spaceNeeded = getRequiredSpace(levels);
-
-			currBufferSize = auxiliarySketch.getCombinedBufferItemCapacity();
-
-			if (spaceNeeded > currBufferSize) {
-				// nothing from previous collect is valid in this case.
-				auxiliarySketch.putCombinedBuffer(new double[spaceNeeded]);
-			}
-
-			diffLevels = bitPatternDiff(bitP1, bitP2, levels);
-			collect(auxiliarySketch, 0, diffLevels, bitP2);
-
-			bitP1 = bitP2;
-			bitP2 = getBitPattern(); // bitPattern_;
-
-			auxiliarySketch.putBitPattern(bitP1);
-		}
-
-		long n = setNFromBitPattern(bitP1);
-		auxiliarySketch.putN(n);
-
-		final DoublesAuxiliary aux = new DoublesAuxiliary(auxiliarySketch);
-		return aux.getQuantile(fraction);
+//
+//		if ((fraction < 0.0) || (fraction > 1.0)) {
+//			throw new SketchesArgumentException("Fraction cannot be less than zero or greater than 1.0");
+//		}
+//
+//		if (fraction == 0.0) {
+//			return getMinValue();
+//		} else if (fraction == 1.0) {
+//			return getMaxValue();
+//		}
+//
+//		ThreadReadContext threadReadContext = threadReadLocal_.get();
+//		if (threadReadContext == null) {
+//			threadReadContext = new ThreadReadContext();
+//
+//			threadReadContext.auxiliarySketch_ = HeapUpdateDoublesSketch.newInstance(k_);
+//			threadReadLocal_.set(threadReadContext);
+//		}
+//
+//		long bitP1 = getBitPattern(); // bitPattern_;
+//
+//		int levels = Util.computeTotalLevels(bitP1);
+//		int spaceNeeded = getRequiredSpace(levels);
+//
+//		HeapUpdateDoublesSketch auxiliarySketch = threadReadContext.auxiliarySketch_;
+//		int currBufferSize = auxiliarySketch.getCombinedBufferItemCapacity();
+//		if (spaceNeeded > currBufferSize) {
+//			auxiliarySketch.putCombinedBuffer(new double[spaceNeeded]);
+//		}
+//
+//		int diffLevels;
+//
+//		if (levels > 0) {
+//			long auxiliaryBitPattern = auxiliarySketch.getBitPattern();
+//
+//			if (bitP1 != auxiliaryBitPattern) {
+//				diffLevels = bitPatternDiff(auxiliaryBitPattern, bitP1, levels);
+//				collect(auxiliarySketch, 0, diffLevels, bitP1);
+//				auxiliarySketch.putBitPattern(bitP1);
+//			}
+//		}
+//
+//		long bitP2 = getBitPattern(); //
+//
+//		while (bitP1 != bitP2) {
+//
+//
+//			levels = Util.computeTotalLevels(bitP2);
+//			spaceNeeded = getRequiredSpace(levels);
+//
+//			currBufferSize = auxiliarySketch.getCombinedBufferItemCapacity();
+//
+//			if (spaceNeeded > currBufferSize) {
+//				// nothing from previous collect is valid in this case.
+//				auxiliarySketch.putCombinedBuffer(new double[spaceNeeded]);
+//			}
+//
+//			diffLevels = bitPatternDiff(bitP1, bitP2, levels);
+//			collect(auxiliarySketch, 0, diffLevels, bitP2);
+//
+//			bitP1 = bitP2;
+//			bitP2 = getBitPattern(); // bitPattern_;
+//
+//			auxiliarySketch.putBitPattern(bitP1);
+//		}
+//
+//		long n = setNFromBitPattern(bitP1);
+//		auxiliarySketch.putN(n);
+//
+//		final DoublesAuxiliary aux = new DoublesAuxiliary(auxiliarySketch);
+//		return aux.getQuantile(fraction);
 
 	}
 
@@ -262,18 +272,19 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 
 		while (true) {
 
-			int next = curr + 1;
+			int next = curr + numberOfWriters_;
 			if (next > numberOfLeaves) {
-				next = 1;
+				next = threadWrtieContext.id_;
 			}
 
 			// LOG.info("in while 1: curr = " + curr);
 			if (treeBaseBitPattern_[curr - 1].get() == 0) {
 				threadWrtieContext.NextBaseTreeNodeNum_ = next;
 				return curr;
-			} else {
-				debug_++;
-			}
+			} 
+//			else {
+//				debug_++;
+//			}
 			curr = next;
 
 			// LOG.info("in while 1: curr = " + curr);

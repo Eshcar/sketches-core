@@ -200,6 +200,7 @@ public abstract class DoublesSketch {
    *
    * @return the approximation to the value at the above fraction
    */
+  
   public double getQuantile(final double fraction) {
     if ((fraction < 0.0) || (fraction > 1.0)) {
       throw new SketchesArgumentException("Fraction cannot be less than zero or greater than 1.0");
