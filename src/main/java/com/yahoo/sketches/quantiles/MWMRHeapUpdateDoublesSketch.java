@@ -174,12 +174,14 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 	@Override
 	public double getQuantile(final double fraction) {
 
-		// double[] a = new double[1000];
-		//
-		// for (int i = 0; i < 100 ; i++) {
-		// a[i] = i;
-		// }
-		
+//		 double[] a = new double[1000];
+//		
+//		 for (int i = 0; i < 1000 ; i++) {
+//		 a[i] = i;
+//		 }
+//		 
+//		 return 0;
+	
 //		long endTime = System.currentTimeMillis() + 1000;
 //		while (true) {
 //			long left = endTime - System.currentTimeMillis();
@@ -188,8 +190,7 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 //		}
 //		
 //		return 0;
-
-
+//
 		if ((fraction < 0.0) || (fraction > 1.0)) {
 			throw new SketchesArgumentException("Fraction cannot be less than zero or greater than 1.0");
 		}
@@ -230,11 +231,9 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 				auxiliarySketch.putBitPattern(bitP1);
 			}
 		}
-
 		long bitP2 = getBitPattern(); //
 
-		while (bitP1 != bitP2) {
-
+	while (bitP1 != bitP2) {
 
 			levels = Util.computeTotalLevels(bitP2);
 			spaceNeeded = getRequiredSpace(levels);
@@ -252,7 +251,7 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 			bitP1 = bitP2;
 			bitP2 = getBitPattern(); // bitPattern_;
 
-			auxiliarySketch.putBitPattern(bitP1);
+		auxiliarySketch.putBitPattern(bitP1);
 		}
 
 		long n = setNFromBitPattern(bitP1);
@@ -260,7 +259,6 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 
 		final DoublesAuxiliary aux = new DoublesAuxiliary(auxiliarySketch);
 		return aux.getQuantile(fraction);
-
 	}
 
 	int getFreeTreeBasePlace(int numberOfTreeLevels, ThreadWriteContext threadWrtieContext) {

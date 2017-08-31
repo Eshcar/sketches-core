@@ -9,6 +9,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.omg.CORBA.PRIVATE_MEMBER;
 
 import com.yahoo.sketches.SketchesArgumentException;
@@ -41,7 +43,7 @@ final class SWSRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 	private AtomicInteger atomicBaseBufferCount_ = new AtomicInteger();
 //	ExecutorService executorPropogation;
 	
-	
+	private static final Log LOG = LogFactory.getLog(SWSRHeapUpdateDoublesSketch.class);
 
 	// **CONSTRUCTORS**********************************************************
 	public SWSRHeapUpdateDoublesSketch(final int k) {
@@ -155,6 +157,8 @@ final class SWSRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 		} else if (fraction == 1.0) {
 			return getMaxValue();
 		}
+		
+//		LOG.info("good");
 
 		ThreadContext threadContext = threadLocal_.get();
 		if (threadContext == null) {

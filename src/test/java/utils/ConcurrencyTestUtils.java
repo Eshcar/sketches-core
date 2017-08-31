@@ -121,6 +121,15 @@ public class ConcurrencyTestUtils {
 		// protected final TestContext ctx_;
 		private AtomicBoolean stop_ = new AtomicBoolean(false);
 		private AtomicBoolean start_ = new AtomicBoolean(false);
+		private boolean affinity_ = false;
+
+		public boolean getAffinity_() {
+			return affinity_;
+		}
+
+		public void setAffinity_(boolean setAffinity) {
+			this.affinity_ = setAffinity;
+		}
 
 		// public TestThread(TestContext ctx) {
 		public TestThread() {
@@ -128,6 +137,8 @@ public class ConcurrencyTestUtils {
 		}
 
 		public void run() {
+			
+//			AffinityLock.setAffinity (1L << n);
 
 			 while (!start_.get()) {}
 
@@ -137,6 +148,9 @@ public class ConcurrencyTestUtils {
 					doWork();
 				}
 			} catch (Throwable t) {
+				
+//				throw new RuntimeException
+				
 //				ctx_.threadFailed(t);
 			}
 
