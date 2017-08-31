@@ -65,15 +65,11 @@ public class ThreadAffinity {
 	}
 
 	public static void setCurrentThreadAffinityMask(final long mask) throws Exception {
-		LOG.info("hi");
 		final CLibrary lib = CLibrary.INSTANCE;
 		final int cpuMaskSize = Long.SIZE / 8;
-		LOG.info("hi1");
 
 		try {
-			LOG.info("hi2");
 			final int ret = lib.sched_setaffinity(0, cpuMaskSize, new LongByReference(mask));
-			LOG.info("hi3");
 			if (ret < 0) {
 				throw new Exception("sched_setaffinity( 0, (" + cpuMaskSize + ") , &(" + mask + ") ) return " + ret);
 			}

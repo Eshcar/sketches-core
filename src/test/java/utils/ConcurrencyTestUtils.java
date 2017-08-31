@@ -138,7 +138,6 @@ public class ConcurrencyTestUtils {
 
 		public void run() {
 			
-//			AffinityLock.setAffinity (1L << n);
 
 			 while (!start_.get()) {}
 
@@ -148,7 +147,7 @@ public class ConcurrencyTestUtils {
 					doWork();
 				}
 			} catch (Throwable t) {
-				
+				LOG.info("catched RuntimeException");
 //				throw new RuntimeException
 				
 //				ctx_.threadFailed(t);

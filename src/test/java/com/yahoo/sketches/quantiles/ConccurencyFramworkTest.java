@@ -111,7 +111,7 @@ public class ConccurencyFramworkTest {
 			LOG.info("Type = " + type_ + " Test skipped");
 			break;
 		default:
-			runTest(1, 0, 0, 10);
+			runTest(1, 1, 0, 10);
 			ds_.reset();
 			// runTest(1, 1, 0, 10);
 			// ds_.reset();
@@ -217,14 +217,11 @@ public class ConccurencyFramworkTest {
 		@Override
 		public void doWork() throws Exception {
 			
-			LOG.info( "I am a writer and my core is " + ThreadAffinity.currentCore());
-			LOG.info("hellow");
+			
 			if (!getAffinity_()) {
-				LOG.info("hellow");
-				long mask = 1 << 0;
-				LOG.info("hellow1");
+				LOG.info( "I am a writer and my core is " + ThreadAffinity.currentCore());
+				long mask = 1 << 4;
 				ThreadAffinity.setCurrentThreadAffinityMask(mask);
-				LOG.info("hellow2");
 				setAffinity_(true);
 				LOG.info( "I am a writer and my core is " + ThreadAffinity.currentCore());
 			}
@@ -253,7 +250,8 @@ public class ConccurencyFramworkTest {
 		public void doWork() throws Exception {
 			
 			if (!getAffinity_()) {
-				long mask = 1 << 3;
+				LOG.info( "I am a reader and my core is " + ThreadAffinity.currentCore());
+				long mask = 1 << 14;
 				ThreadAffinity.setCurrentThreadAffinityMask(mask);
 				setAffinity_(true);
 				LOG.info( "I am a reader and my core is " + ThreadAffinity.currentCore());
