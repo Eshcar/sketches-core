@@ -227,19 +227,19 @@ public class ConccurencyFramworkTest {
 		public void doWork() throws Exception {
 			
 			
-//			if (!getAffinity_()) {
-//				LOG.info( "I am a writer and my core is " + ThreadAffinity.currentCore());
-//				long mask = 1 << 1;
-//				ThreadAffinity.setCurrentThreadAffinityMask(mask);
-//				setAffinity_(true);
-//				LOG.info( "I am a writer and my core is " + ThreadAffinity.currentCore());
-//			}
+			if (!getAffinity_()) {
+				LOG.info( "I am a writer and my core is " + ThreadAffinity.currentCore());
+				long mask = 1 << 2;
+				ThreadAffinity.setCurrentThreadAffinityMask(mask);
+				setAffinity_(true);
+				LOG.info( "I am a writer and my core is " + ThreadAffinity.currentCore());
+			}
 
 			
-			ds_.update(operationsNum_);
+//			ds_.update(operationsNum_);
 			// LOG.info("Writing. ");
 			operationsNum_++;
-			assert(operationsNum_ > 0);
+//			assert(operationsNum_ > 0);
 		}
 
 	}
@@ -260,13 +260,13 @@ public class ConccurencyFramworkTest {
 		@Override
 		public void doWork() throws Exception {
 			
-//			if (!getAffinity_()) {
-//				LOG.info( "I am a reader and my core is " + ThreadAffinity.currentCore());
-//				long mask = 1 << 2;
-//				ThreadAffinity.setCurrentThreadAffinityMask(mask);
-//				setAffinity_(true);
-//				LOG.info( "I am a reader and my core is " + ThreadAffinity.currentCore());
-//			}
+			if (!getAffinity_()) {
+				LOG.info( "I am a reader and my core is " + ThreadAffinity.currentCore());
+				long mask = 1 << 5;
+				ThreadAffinity.setCurrentThreadAffinityMask(mask);
+				setAffinity_(true);
+				LOG.info( "I am a reader and my core is " + ThreadAffinity.currentCore());
+			}
 
 			// double[] a = new double[1000];
 			//
@@ -282,7 +282,7 @@ public class ConccurencyFramworkTest {
 			// }
 			////
 
-			ds_.getQuantile(0.5);
+//			ds_.getQuantile(0.5);
 
 			readOperationsNum_++;
 		}
