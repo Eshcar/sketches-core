@@ -4,9 +4,12 @@ import java.util.HashSet;
 
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+
+import com.yahoo.sketches.quantiles.HeapUpdateDoublesSketch;
 
 public class ConcurrencyTestUtils {
 
@@ -122,27 +125,35 @@ public class ConcurrencyTestUtils {
 		private AtomicBoolean stop_ = new AtomicBoolean(false);
 		private AtomicBoolean start_ = new AtomicBoolean(false);
 		private boolean affinity_ = false;
+		public HeapUpdateDoublesSketch ds_;
+		
+//		private AtomicInteger test = new AtomicInteger(0);
 
 		public boolean getAffinity_() {
 			return affinity_;
 		}
 
 		public void setAffinity_(boolean setAffinity) {
-			this.affinity_ = setAffinity;
+			affinity_ = setAffinity;
 		}
 
 		// public TestThread(TestContext ctx) {
-		public TestThread() {
+		public TestThread(HeapUpdateDoublesSketch ds) {
+			ds_ = ds;
 //			this.ctx_ = ctx;
 		}
 
 		public void run() {
+			
+//			test.incrementAndGet();
 			
 
 			 while (!start_.get()) {}
 
 			try {
 				while (!stop_.get()) {
+					
+//					assert(test.get() == 1);
 
 					doWork();
 				}
@@ -152,6 +163,9 @@ public class ConcurrencyTestUtils {
 				
 //				ctx_.threadFailed(t);
 			}
+			
+			
+//			ds_.resetLocal();
 
 		}
 

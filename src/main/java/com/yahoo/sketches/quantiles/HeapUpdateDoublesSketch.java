@@ -231,6 +231,10 @@ public class HeapUpdateDoublesSketch extends UpdateDoublesSketch {
   public double getMaxValue() {
     return maxValue_;
   }
+  
+	public void resetLocal() {
+		
+	}
 
   @Override
   public void reset() {

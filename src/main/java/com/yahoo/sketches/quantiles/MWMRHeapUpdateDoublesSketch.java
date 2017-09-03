@@ -179,7 +179,7 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 //		 for (int i = 0; i < 1000 ; i++) {
 //		 a[i] = i;
 //		 }
-//		 
+		 
 //		 return 0;
 	
 //		long endTime = System.currentTimeMillis() + 1000;
@@ -190,7 +190,7 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 //		}
 //		
 //		return 0;
-//
+
 		if ((fraction < 0.0) || (fraction > 1.0)) {
 			throw new SketchesArgumentException("Fraction cannot be less than zero or greater than 1.0");
 		}
@@ -287,6 +287,14 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 
 			// LOG.info("in while 1: curr = " + curr);
 		}
+	}
+	
+	public void resetLocal() {
+		
+		threadReadLocal_.set(null);
+		threadWriteLocal_.set(null);
+		
+		LOG.info("reset local");
 	}
 
 	private long setNFromBitPattern(long bits) {
@@ -411,18 +419,37 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 
 	@Override
 	public void reset() {
+		
 		final int baseBufAlloc = 2 * k_;
 
 		this.executorSevice_.shutdown();
 		this.putN(0);
 		this.putCombinedBuffer(new double[baseBufAlloc]);
 		this.putBaseBufferCount(0);
-		this.putBitPattern(1); // represent also the base buffer.
+		this.putBitPattern(0); // represent also the base buffer.
 		this.putMinValue(Double.POSITIVE_INFINITY);
 		this.putMaxValue(Double.NEGATIVE_INFINITY);
 		this.executorSevice_ = Executors.newFixedThreadPool(numberOfThreads_);
+		
 
-		// TODO: reset local thread
+		int numberOfLeaves = numberOfLeaves(numberOfTreeLevels_);
+
+		for (int i = 0; i < numberOfLeaves; i++) {
+			treeBaseBitPattern_[i].set(0);
+		}
+
+		int numberOfTreeNodes = numberOfTreeNodes(numberOfTreeLevels_);
+
+		for (int i = 0; i < numberOfTreeNodes; i++) {
+			treeBitPattern_[i].set(0);
+		}
+		
+
+		for (int i = 0; i < numberOfTreeNodes; i++) {
+			treeReadyBitPattern_[i].set(0);
+		}
+		
+
 	}
 
 	public void clean() {
