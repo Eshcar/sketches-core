@@ -28,8 +28,8 @@ public class ConccurencyFramworkTest {
 
 		// return new Object[] {"LOCK_BASE_OIGENAL" };
 		// return new Object[] {"ORIGINAL" };
-//		return new Object[] { "SWMR_BASIC" };
-		 return new Object[] { "MWMR_BASIC" };
+		// return new Object[] { "SWMR_BASIC" };
+		return new Object[] { "MWMR_BASIC" };
 	}
 
 	enum SketchType {
@@ -102,56 +102,58 @@ public class ConccurencyFramworkTest {
 	//
 	// }
 
-//	@Test
-//	public void SWMR() throws Exception {
-//		LOG.info("=====================Test SWMR:======================");
-//
-//		switch (type_) {
-//		case ORIGINAL:
-//			LOG.info("Type = " + type_ + " Test skipped");
-//			break;
-//		default:
-//			runTest(1, 1, 0, 10);
-//			ds_.reset();
-			// runTest(1, 1, 0, 10);
-			// ds_.reset();
-			// runTest(1, 1, 0, 10);
-			// ds_.reset();
-			// runTest(1, 1, 0, 10);
-			// ds_.reset();
-			// runTest(1, 1, 0, 10);
-			// ds_.reset();
-			// runTest(1, 1, 0, 10);
-			// ds_.reset();
-//			break;
-//		}
-//	}
+	// @Test
+	// public void SWMR() throws Exception {
+	// LOG.info("=====================Test SWMR:======================");
+	//
+	// switch (type_) {
+	// case ORIGINAL:
+	// LOG.info("Type = " + type_ + " Test skipped");
+	// break;
+	// default:
+	// runTest(1, 1, 0, 10);
+	// ds_.reset();
+	// runTest(1, 1, 0, 10);
+	// ds_.reset();
+	// runTest(1, 1, 0, 10);
+	// ds_.reset();
+	// runTest(1, 1, 0, 10);
+	// ds_.reset();
+	// runTest(1, 1, 0, 10);
+	// ds_.reset();
+	// runTest(1, 1, 0, 10);
+	// ds_.reset();
+	// break;
+	// }
+	// }
 
-	 @Test
-	 public void MWMR() throws Exception {
-	 LOG.info("=====================Test MWMR:======================");
-	
-	 switch (type_) {
-	 case ORIGINAL:
-	 case SWMR_BASIC:
-	 LOG.info("Type = " + type_ + " Test skipped");
-	 break;
-	 default:
-	 runTest(1, 1, 0, 10);
-	 setUp();
-	 runTest(1, 1, 0, 10);
-	 setUp();
-	 runTest(1, 1, 0, 10);
-	 setUp();
-	 runTest(1, 1, 0, 10);
-	 setUp();
-	 LOG.info("writer idle = " + ds_.getDebug_());
-	 }
-	 }
+	@Test
+	public void MWMR() throws Exception {
+		LOG.info("=====================Test MWMR:======================");
+
+		switch (type_) {
+		case ORIGINAL:
+		case SWMR_BASIC:
+			LOG.info("Type = " + type_ + " Test skipped");
+			break;
+		default:
+			runTest(1, 0, 0, 10);
+			setUp();
+			runTest(1, 0, 0, 10);
+			setUp();
+			runTest(1, 0, 0, 10);
+			setUp();
+			runTest(1, 0, 0, 10);
+			setUp();
+			LOG.info("writer idle = " + ds_.getDebug_());
+		}
+	}
 
 	private void runTest(int writersNum, int readersNum, int mixedNum, long secondsToRun) throws Exception {
 
 		TestContext ctx = new TestContext();
+
+		// OperationsNum ops = new OperationsNum();
 
 		List<WriterThread> writersList = Lists.newArrayList();
 		for (int i = 0; i < writersNum; i++) {
@@ -208,38 +210,47 @@ public class ConccurencyFramworkTest {
 		}
 		LOG.info("readTput = " + ((totalReads / secondsToRun)) / 1000000.0 + " millions per second");
 
-		
 		LOG.info(ds_.getQuantile(0.5));
+
+		// LOG.info("writeOps = " + ops.writeOp / 1000000.0);
+		// LOG.info("readOps = " + ops.readOp / 1000000.0);
 	}
+
+	// public static class OperationsNum {
+	//
+	// public long readOp = 0;
+	// public long writeOp = 0;
+	//
+	//
+	// }
 
 	public static class WriterThread extends TestThread {
 		// Random rand_ = new Random();
-//		HeapUpdateDoublesSketch ds_;
+		// HeapUpdateDoublesSketch ds_;
 		long operationsNum_ = 0;
+		// OperationsNum ops_;
 
 		// public WriterThread(TestContext ctx, HeapUpdateDoublesSketch ds) {
 		public WriterThread(HeapUpdateDoublesSketch ds) {
 			super(ds);
-//			ds_ = ds;
+			// ds_ = ds;
 		}
 
 		@Override
 		public void doWork() throws Exception {
-			
-			
-			if (!getAffinity_()) {
-				LOG.info( "I am a writer and my core is " + ThreadAffinity.currentCore());
-				long mask = 1 << 2;
-				ThreadAffinity.setCurrentThreadAffinityMask(mask);
-				setAffinity_(true);
-				LOG.info( "I am a writer and my core is " + ThreadAffinity.currentCore());
-			}
 
-			
-//			ds_.update(operationsNum_);
+			// if (!getAffinity_()) {
+			// LOG.info( "I am a writer and my core is " + ThreadAffinity.currentCore());
+			// long mask = 1 << 2;
+			// ThreadAffinity.setCurrentThreadAffinityMask(mask);
+			// setAffinity_(true);
+			// LOG.info( "I am a writer and my core is " + ThreadAffinity.currentCore());
+			// }
+
+			// ds_.update(operationsNum_);
 			// LOG.info("Writing. ");
 			operationsNum_++;
-//			assert(operationsNum_ > 0);
+			// assert(operationsNum_ > 0);
 		}
 
 	}
@@ -247,26 +258,25 @@ public class ConccurencyFramworkTest {
 	public static class ReaderThread extends TestThread {
 
 		// Random rand_ = new Random();
-//		HeapUpdateDoublesSketch ds_;
+		// HeapUpdateDoublesSketch ds_;
 		long readOperationsNum_ = 0;
 
 		public ReaderThread(HeapUpdateDoublesSketch ds) {
 			super(ds);
-//			ds_ = ds;
-
+			// ds_ = ds;
 
 		}
 
 		@Override
 		public void doWork() throws Exception {
-			
-			if (!getAffinity_()) {
-				LOG.info( "I am a reader and my core is " + ThreadAffinity.currentCore());
-				long mask = 1 << 5;
-				ThreadAffinity.setCurrentThreadAffinityMask(mask);
-				setAffinity_(true);
-				LOG.info( "I am a reader and my core is " + ThreadAffinity.currentCore());
-			}
+
+			// if (!getAffinity_()) {
+			// LOG.info( "I am a reader and my core is " + ThreadAffinity.currentCore());
+			// long mask = 1 << 5;
+			// ThreadAffinity.setCurrentThreadAffinityMask(mask);
+			// setAffinity_(true);
+			// LOG.info( "I am a reader and my core is " + ThreadAffinity.currentCore());
+			// }
 
 			// double[] a = new double[1000];
 			//
@@ -282,8 +292,7 @@ public class ConccurencyFramworkTest {
 			// }
 			////
 
-//			ds_.getQuantile(0.5);
-
+			// ds_.getQuantile(0.5);
 			readOperationsNum_++;
 		}
 	}
@@ -291,14 +300,14 @@ public class ConccurencyFramworkTest {
 	public static class MixedThread extends TestThread {
 
 		// Random rand_ = new Random();
-//		HeapUpdateDoublesSketch ds_;
+		// HeapUpdateDoublesSketch ds_;
 		double writeOps_ = 0;
 		long readOps_ = 0;
 		int i_ = 1;
 
 		public MixedThread(HeapUpdateDoublesSketch ds) {
 			super(ds);
-//			ds_ = ds;
+			// ds_ = ds;
 		}
 
 		@Override
