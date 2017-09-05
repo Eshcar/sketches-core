@@ -51,7 +51,7 @@ public class TestPerformance {
 
 				for (int i = 0; i < 3; i++) {
 					test.setUp("MWMR_BASIC", helpers, 3, writers);
-					test.runTest(writers, 0, 0, 2);
+					test.runTest(writers, 0, 0, 20);
 				}
 
 			}
