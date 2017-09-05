@@ -6,8 +6,12 @@ import java.util.StringTokenizer;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-import com.sun.jna.*;
+import com.sun.jna.LastErrorException;
+import com.sun.jna.Library;
+import com.sun.jna.Native;
+import com.sun.jna.PointerType;
 import com.sun.jna.ptr.LongByReference;
+
 import net.jcip.annotations.Immutable;
 
 public class ThreadAffinity {
@@ -189,3 +193,4 @@ public class ThreadAffinity {
 		return cores;
 	}
 }
+

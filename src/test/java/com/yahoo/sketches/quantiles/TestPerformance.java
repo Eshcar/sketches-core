@@ -42,7 +42,7 @@ public class TestPerformance {
 
 		for (int helpers = 1; helpers < 5; helpers++) {
 			test.LOG.info("##########################################helpers = " + helpers + "#############################################");
-			for (int writers = 1; writers < 4; writers++) {
+			for (int writers = 1; writers < 5; writers++) {
 
 				test.LOG.info("##########################################writers = " + writers + "#############################################");
 				if (writers == 3) {
@@ -58,89 +58,6 @@ public class TestPerformance {
 
 		}
 //
-//		test.setUp("MWMR_BASIC", 1, 3, 1);
-//		test.runTest(1, 0, 0, 20);
-//		test.setUp("MWMR_BASIC", 1, 3, 1);
-//		test.runTest(1, 0, 0, 20);
-//		test.setUp("MWMR_BASIC", 1, 3, 1);
-//		test.runTest(1, 0, 0, 20);
-//
-//		test.setUp("MWMR_BASIC", 1, 3, 2);
-//		test.runTest(2, 0, 0, 20);
-//		test.setUp("MWMR_BASIC", 1, 3, 2);
-//		test.runTest(2, 0, 0, 20);
-//		test.setUp("MWMR_BASIC", 1, 3, 2);
-//		test.runTest(2, 0, 0, 20);
-//
-//		test.setUp("MWMR_BASIC", 1, 3, 4);
-//		test.runTest(4, 0, 0, 20);
-//		test.setUp("MWMR_BASIC", 1, 3, 4);
-//		test.runTest(4, 0, 0, 20);
-//		test.setUp("MWMR_BASIC", 1, 3, 4);
-//		test.runTest(4, 0, 0, 20);
-//
-//		test.setUp("MWMR_BASIC", 2, 3, 1);
-//		test.runTest(1, 0, 0, 20);
-//		test.setUp("MWMR_BASIC", 2, 3, 1);
-//		test.runTest(1, 0, 0, 20);
-//		test.setUp("MWMR_BASIC", 2, 3, 1);
-//		test.runTest(1, 0, 0, 20);
-//
-//		test.setUp("MWMR_BASIC", 2, 3, 2);
-//		test.runTest(2, 0, 0, 20);
-//		test.setUp("MWMR_BASIC", 2, 3, 2);
-//		test.runTest(2, 0, 0, 20);
-//		test.setUp("MWMR_BASIC", 2, 3, 2);
-//		test.runTest(2, 0, 0, 20);
-//
-//		test.setUp("MWMR_BASIC", 2, 3, 4);
-//		test.runTest(4, 0, 0, 20);
-//		test.setUp("MWMR_BASIC", 2, 3, 4);
-//		test.runTest(4, 0, 0, 20);
-//		test.setUp("MWMR_BASIC", 2, 3, 4);
-//		test.runTest(4, 0, 0, 20);
-//
-//		test.setUp("MWMR_BASIC", 3, 3, 1);
-//		test.runTest(1, 0, 0, 20);
-//		test.setUp("MWMR_BASIC", 3, 3, 1);
-//		test.runTest(1, 0, 0, 20);
-//		test.setUp("MWMR_BASIC", 3, 3, 1);
-//		test.runTest(1, 0, 0, 20);
-//
-//		test.setUp("MWMR_BASIC", 3, 3, 2);
-//		test.runTest(2, 0, 0, 20);
-//		test.setUp("MWMR_BASIC", 3, 3, 2);
-//		test.runTest(2, 0, 0, 20);
-//		test.setUp("MWMR_BASIC", 3, 3, 2);
-//		test.runTest(2, 0, 0, 20);
-//
-//		test.setUp("MWMR_BASIC", 3, 3, 4);
-//		test.runTest(4, 0, 0, 20);
-//		test.setUp("MWMR_BASIC", 3, 3, 4);
-//		test.runTest(4, 0, 0, 20);
-//		test.setUp("MWMR_BASIC", 3, 3, 4);
-//		test.runTest(4, 0, 0, 20);
-//
-//		test.setUp("MWMR_BASIC", 4, 3, 1);
-//		test.runTest(1, 0, 0, 20);
-//		test.setUp("MWMR_BASIC", 4, 3, 1);
-//		test.runTest(1, 0, 0, 20);
-//		test.setUp("MWMR_BASIC", 4, 3, 1);
-//		test.runTest(1, 0, 0, 20);
-//
-//		test.setUp("MWMR_BASIC", 4, 3, 2);
-//		test.runTest(2, 0, 0, 20);
-//		test.setUp("MWMR_BASIC", 4, 3, 2);
-//		test.runTest(2, 0, 0, 20);
-//		test.setUp("MWMR_BASIC", 4, 3, 2);
-//		test.runTest(2, 0, 0, 20);
-//
-//		test.setUp("MWMR_BASIC", 4, 3, 4);
-//		test.runTest(4, 0, 0, 20);
-//		test.setUp("MWMR_BASIC", 4, 3, 4);
-//		test.runTest(4, 0, 0, 20);
-//		test.setUp("MWMR_BASIC", 4, 3, 4);
-//		test.runTest(4, 0, 0, 20);
 
 		test.LOG.info("Done!");
 

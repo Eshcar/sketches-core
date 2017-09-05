@@ -13,15 +13,20 @@ import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
 
 import com.yahoo.sketches.SketchesArgumentException;
+import com.yahoo.sketches.quantiles.ThreadAffinity;
 
 public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 
-	private class ThreadReadContext {
+	private static class ThreadReadContext {
 		HeapUpdateDoublesSketch auxiliarySketch_;
 		int id_;
 	}
 
-	private class ThreadWriteContext {
+	private static class ThreadAffinityContext {
+		boolean affinitiyIsSet = false;
+	}
+
+	private static class ThreadWriteContext {
 		double[] buffer_;
 		int index_;
 		int NextBaseTreeNodeNum_;
@@ -38,6 +43,7 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 
 	private final ThreadLocal<ThreadReadContext> threadReadLocal_ = new ThreadLocal<ThreadReadContext>();
 	private final ThreadLocal<ThreadWriteContext> threadWriteLocal_ = new ThreadLocal<ThreadWriteContext>();
+	public final ThreadLocal<ThreadAffinityContext> threadAffinityLocal_ = new ThreadLocal<ThreadAffinityContext>();
 	private AtomicLong atomicBitPattern_ = new AtomicLong();
 	private AtomicInteger atomicBaseBufferCount_ = new AtomicInteger();
 	private ExecutorService executorSevice_;
@@ -50,8 +56,9 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 	private AtomicInteger[] treeBitPattern_;
 	private AtomicInteger[] treeReadyBitPattern_;
 	private AtomicInteger PropogationLock_;
-	
+
 	private AtomicInteger WritersID = new AtomicInteger();
+	public AtomicInteger Affinity_ = new AtomicInteger();
 
 	public int debug_ = 0;
 
@@ -67,7 +74,8 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 		super(k); // Checks k
 	}
 
-	static MWMRHeapUpdateDoublesSketch newInstance(final int k, int numberOfThreads, int numberOfTreeLevels, int numberOfWriters) {
+	static MWMRHeapUpdateDoublesSketch newInstance(final int k, int numberOfThreads, int numberOfTreeLevels,
+			int numberOfWriters) {
 
 		final MWMRHeapUpdateDoublesSketch hqs = new MWMRHeapUpdateDoublesSketch(k);
 		final int baseBufAlloc = 2 * k; // the min is important
@@ -133,6 +141,24 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 		}
 		// Do we need a fence here?
 
+		try {
+			ThreadAffinityContext threadAffinityContext = threadAffinityLocal_.get();
+			if (threadAffinityContext == null) {
+				threadAffinityContext = new ThreadAffinityContext();
+				threadAffinityContext.affinitiyIsSet = true;
+
+				int core = Affinity_.getAndIncrement();
+
+				LOG.info("I am a writer and my core is " + ThreadAffinity.currentCore());
+				long mask = 1 << core;
+				ThreadAffinity.setCurrentThreadAffinityMask(mask);
+				LOG.info("I am a writer and my core is " + ThreadAffinity.currentCore());
+			}
+		} catch (Exception e) {
+			// TODO: handle exception
+			LOG.info("catched RuntimeException: " + e);
+		}
+
 		ThreadWriteContext threadWriteContext = threadWriteLocal_.get();
 		if (threadWriteContext == null) {
 			threadWriteContext = new ThreadWriteContext();
@@ -140,14 +166,13 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 			threadWriteContext.index_ = 0;
 			threadWriteContext.buffer_ = new double[2 * k_];
 			threadWriteContext.id_ = WritersID.incrementAndGet();
-			
-			if(threadWriteContext.id_ == 1) {
+
+			if (threadWriteContext.id_ == 1) {
 				threadWriteContext.NextBaseTreeNodeNum_ = 1;
-			}else {
+			} else {
 				threadWriteContext.NextBaseTreeNodeNum_ = threadWriteContext.id_ - 1;
 			}
-			
-			
+
 			threadWriteLocal_.set(threadWriteContext);
 		}
 
@@ -180,22 +205,22 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 	@Override
 	public double getQuantile(final double fraction) {
 
-//		 double[] a = new double[1000];
-//		
-//		 for (int i = 0; i < 1000 ; i++) {
-//		 a[i] = i;
-//		 }
-		 
-//		 return 0;
-	
-//		long endTime = System.currentTimeMillis() + 1000;
-//		while (true) {
-//			long left = endTime - System.currentTimeMillis();
-//			if (left <= 0)
-//				break;
-//		}
-//		
-//		return 0;
+		// double[] a = new double[1000];
+		//
+		// for (int i = 0; i < 1000 ; i++) {
+		// a[i] = i;
+		// }
+
+		// return 0;
+
+		// long endTime = System.currentTimeMillis() + 1000;
+		// while (true) {
+		// long left = endTime - System.currentTimeMillis();
+		// if (left <= 0)
+		// break;
+		// }
+		//
+		// return 0;
 
 		if ((fraction < 0.0) || (fraction > 1.0)) {
 			throw new SketchesArgumentException("Fraction cannot be less than zero or greater than 1.0");
@@ -239,7 +264,7 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 		}
 		long bitP2 = getBitPattern(); //
 
-	while (bitP1 != bitP2) {
+		while (bitP1 != bitP2) {
 
 			levels = Util.computeTotalLevels(bitP2);
 			spaceNeeded = getRequiredSpace(levels);
@@ -257,7 +282,7 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 			bitP1 = bitP2;
 			bitP2 = getBitPattern(); // bitPattern_;
 
-		auxiliarySketch.putBitPattern(bitP1);
+			auxiliarySketch.putBitPattern(bitP1);
 		}
 
 		long n = setNFromBitPattern(bitP1);
@@ -276,23 +301,22 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 
 		int skip;
 		int id;
-		
-		if(threadWrtieContext.id_ == 1) {
+
+		if (threadWrtieContext.id_ == 1) {
 			skip = 1;
 			id = 1;
-		}else {
+		} else {
 			id = threadWrtieContext.id_ - 1;
 			skip = numberOfWriters_;
 		}
-		
+
 		while (true) {
 
-			
-//			int next = curr + numberOfWriters_;
-//			if (next > numberOfLeaves) {
-//				next = threadWrtieContext.id_;
-//			}
-			
+			// int next = curr + numberOfWriters_;
+			// if (next > numberOfLeaves) {
+			// next = threadWrtieContext.id_;
+			// }
+
 			int next = curr + skip;
 			if (next > numberOfLeaves) {
 				next = id;
@@ -302,21 +326,21 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 			if (treeBaseBitPattern_[curr - 1].get() == 0) {
 				threadWrtieContext.NextBaseTreeNodeNum_ = next;
 				return curr;
-			} 
-//			else {
-//				debug_++;
-//			}
+			}
+			// else {
+			// debug_++;
+			// }
 			curr = next;
 
 			// LOG.info("in while 1: curr = " + curr);
 		}
 	}
-	
+
 	public void resetLocal() {
-		
+
 		threadReadLocal_.set(null);
 		threadWriteLocal_.set(null);
-		
+
 		LOG.info("reset local");
 	}
 
@@ -442,7 +466,7 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 
 	@Override
 	public void reset() {
-		
+
 		final int baseBufAlloc = 2 * k_;
 
 		this.executorSevice_.shutdown();
@@ -453,7 +477,6 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 		this.putMinValue(Double.POSITIVE_INFINITY);
 		this.putMaxValue(Double.NEGATIVE_INFINITY);
 		this.executorSevice_ = Executors.newFixedThreadPool(numberOfThreads_);
-		
 
 		int numberOfLeaves = numberOfLeaves(numberOfTreeLevels_);
 
@@ -466,12 +489,10 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 		for (int i = 0; i < numberOfTreeNodes; i++) {
 			treeBitPattern_[i].set(0);
 		}
-		
 
 		for (int i = 0; i < numberOfTreeNodes; i++) {
 			treeReadyBitPattern_[i].set(0);
 		}
-		
 
 	}
 
@@ -590,6 +611,29 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 			}
 		}
 
+		public void setAffinity() {
+
+			try {
+
+				ThreadAffinityContext threadAffinityContext = ds_.threadAffinityLocal_.get();
+				if (threadAffinityContext == null) {
+					threadAffinityContext = new ThreadAffinityContext();
+					threadAffinityContext.affinitiyIsSet = true;
+
+					int core = ds_.Affinity_.getAndIncrement();
+
+					LOG.info("I am a writer and my core is " + ThreadAffinity.currentCore());
+					long mask = 1 << core;
+					ThreadAffinity.setCurrentThreadAffinityMask(mask);
+					LOG.info("I am a writer and my core is " + ThreadAffinity.currentCore());
+				}
+			} catch (Exception e) {
+				// TODO: handle exception
+				LOG.info("catched RuntimeException: " + e);
+			}
+
+		}
+
 	}
 
 	public class BackgroundPropogatorWriter extends BackgroundWriter {
@@ -602,6 +646,8 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 
 		@Override
 		public void run() {
+
+			setAffinity();
 
 			MWMRHeapUpdateDoublesSketch ds = getSketch();
 			DoublesArrayAccessor TreeBuffer = ds.getTreeBuffer_();
@@ -681,6 +727,8 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 		@Override
 		public void run() {
 
+			setAffinity();
+
 			MWMRHeapUpdateDoublesSketch ds = getSketch();
 			DoublesArrayAccessor TreeBaseBuffer = ds.getTreeBaseBuffer_();
 			AtomicInteger[] TreeBaseBitPattern = ds.getTreeBaseBitPattern_();
@@ -723,6 +771,8 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 
 		@Override
 		public void run() {
+
+			setAffinity();
 
 			MWMRHeapUpdateDoublesSketch ds = getSketch();
 			DoublesArrayAccessor TreeBuffer = ds.getTreeBuffer_();

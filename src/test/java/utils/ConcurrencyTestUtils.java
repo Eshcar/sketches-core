@@ -158,7 +158,7 @@ public class ConcurrencyTestUtils {
 					doWork();
 				}
 			} catch (Throwable t) {
-				LOG.info("catched RuntimeException");
+				LOG.info("catched RuntimeException: " + t);
 //				throw new RuntimeException
 				
 //				ctx_.threadFailed(t);
