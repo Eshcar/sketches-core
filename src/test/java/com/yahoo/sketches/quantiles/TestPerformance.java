@@ -6,57 +6,185 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import com.google.common.collect.Lists;
-import com.yahoo.sketches.quantiles.ConccurencyFramworkTest.MixedThread;
-import com.yahoo.sketches.quantiles.ConccurencyFramworkTest.ReaderThread;
-import com.yahoo.sketches.quantiles.ConccurencyFramworkTest.SketchType;
-import com.yahoo.sketches.quantiles.ConccurencyFramworkTest.WriterThread;
 
 import utils.ConcurrencyTestUtils.TestContext;
 import utils.ConcurrencyTestUtils.TestThread;
 
+import com.yahoo.sketches.quantiles.HeapUpdateDoublesSketch;
+import com.yahoo.sketches.quantiles.ConccurencyFramworkTest.SketchType;
+
 public class TestPerformance {
-	
+
 	private HeapUpdateDoublesSketch ds_;
-//	private static final SketchType type_ = ;
+	// private static final SketchType type_ = ;
 	private final int k_ = 128;
-	private final Log LOG = LogFactory.getLog(ConccurencyFramworkTest.class);
-	
-	
+	public final Log LOG = LogFactory.getLog(TestPerformance.class);
+
 	public static void main(String[] args) throws Exception {
-		
-		Log LOG1 = LogFactory.getLog(ConccurencyFramworkTest.class);
-		
+
 		TestPerformance test = new TestPerformance();
-		
-		test.setUp();
-		test.runTest(1, 0, 0, 60);
-		test.setUp();
-		test.runTest(1, 0, 0, 60);
-		test.setUp();
-		test.runTest(1, 0, 0, 60);
-		
-		
-		LOG1.info("read + write");
-		
-		test.setUp();
-		test.runTest(1, 1, 0, 60);
-		test.setUp();
-		test.runTest(1, 1, 0, 60);
-		test.setUp();
-		test.runTest(1, 1, 0, 60);
-		
-		
-		
-	}
-	
-	public void setUp() throws Exception {
+
+		// test.LOG.info("setUp(1,2,1), 1 writers 0 readers");
+		// test.LOG.info("");
 
 
-			ds_ = MWMRHeapUpdateDoublesSketch.newInstance(k_, 1, 2, 1);
-	
+		
+		for (int i = 0; i < 3; i++) {
+			test.setUp("ORIGINAL", 1, 3, 1);
+			test.runTest(1, 0, 0, 20);
+		}
+		
+		for (int i = 0; i < 3; i++) {
+			test.setUp("LOCK_BASE_OIGENAL", 1, 3, 1);
+			test.runTest(1, 0, 0, 20);
+		}
+
+
+		for (int helpers = 1; helpers < 5; helpers++) {
+			for (int writers = 1; writers < 4; writers++) {
+
+				if (writers == 3) {
+					continue;
+				}
+
+				for (int i = 0; i < 3; i++) {
+					test.setUp("MWMR_BASIC", helpers, 3, writers);
+					test.runTest(writers, 0, 0, 20);
+				}
+
+			}
+
+		}
+//
+//		test.setUp("MWMR_BASIC", 1, 3, 1);
+//		test.runTest(1, 0, 0, 20);
+//		test.setUp("MWMR_BASIC", 1, 3, 1);
+//		test.runTest(1, 0, 0, 20);
+//		test.setUp("MWMR_BASIC", 1, 3, 1);
+//		test.runTest(1, 0, 0, 20);
+//
+//		test.setUp("MWMR_BASIC", 1, 3, 2);
+//		test.runTest(2, 0, 0, 20);
+//		test.setUp("MWMR_BASIC", 1, 3, 2);
+//		test.runTest(2, 0, 0, 20);
+//		test.setUp("MWMR_BASIC", 1, 3, 2);
+//		test.runTest(2, 0, 0, 20);
+//
+//		test.setUp("MWMR_BASIC", 1, 3, 4);
+//		test.runTest(4, 0, 0, 20);
+//		test.setUp("MWMR_BASIC", 1, 3, 4);
+//		test.runTest(4, 0, 0, 20);
+//		test.setUp("MWMR_BASIC", 1, 3, 4);
+//		test.runTest(4, 0, 0, 20);
+//
+//		test.setUp("MWMR_BASIC", 2, 3, 1);
+//		test.runTest(1, 0, 0, 20);
+//		test.setUp("MWMR_BASIC", 2, 3, 1);
+//		test.runTest(1, 0, 0, 20);
+//		test.setUp("MWMR_BASIC", 2, 3, 1);
+//		test.runTest(1, 0, 0, 20);
+//
+//		test.setUp("MWMR_BASIC", 2, 3, 2);
+//		test.runTest(2, 0, 0, 20);
+//		test.setUp("MWMR_BASIC", 2, 3, 2);
+//		test.runTest(2, 0, 0, 20);
+//		test.setUp("MWMR_BASIC", 2, 3, 2);
+//		test.runTest(2, 0, 0, 20);
+//
+//		test.setUp("MWMR_BASIC", 2, 3, 4);
+//		test.runTest(4, 0, 0, 20);
+//		test.setUp("MWMR_BASIC", 2, 3, 4);
+//		test.runTest(4, 0, 0, 20);
+//		test.setUp("MWMR_BASIC", 2, 3, 4);
+//		test.runTest(4, 0, 0, 20);
+//
+//		test.setUp("MWMR_BASIC", 3, 3, 1);
+//		test.runTest(1, 0, 0, 20);
+//		test.setUp("MWMR_BASIC", 3, 3, 1);
+//		test.runTest(1, 0, 0, 20);
+//		test.setUp("MWMR_BASIC", 3, 3, 1);
+//		test.runTest(1, 0, 0, 20);
+//
+//		test.setUp("MWMR_BASIC", 3, 3, 2);
+//		test.runTest(2, 0, 0, 20);
+//		test.setUp("MWMR_BASIC", 3, 3, 2);
+//		test.runTest(2, 0, 0, 20);
+//		test.setUp("MWMR_BASIC", 3, 3, 2);
+//		test.runTest(2, 0, 0, 20);
+//
+//		test.setUp("MWMR_BASIC", 3, 3, 4);
+//		test.runTest(4, 0, 0, 20);
+//		test.setUp("MWMR_BASIC", 3, 3, 4);
+//		test.runTest(4, 0, 0, 20);
+//		test.setUp("MWMR_BASIC", 3, 3, 4);
+//		test.runTest(4, 0, 0, 20);
+//
+//		test.setUp("MWMR_BASIC", 4, 3, 1);
+//		test.runTest(1, 0, 0, 20);
+//		test.setUp("MWMR_BASIC", 4, 3, 1);
+//		test.runTest(1, 0, 0, 20);
+//		test.setUp("MWMR_BASIC", 4, 3, 1);
+//		test.runTest(1, 0, 0, 20);
+//
+//		test.setUp("MWMR_BASIC", 4, 3, 2);
+//		test.runTest(2, 0, 0, 20);
+//		test.setUp("MWMR_BASIC", 4, 3, 2);
+//		test.runTest(2, 0, 0, 20);
+//		test.setUp("MWMR_BASIC", 4, 3, 2);
+//		test.runTest(2, 0, 0, 20);
+//
+//		test.setUp("MWMR_BASIC", 4, 3, 4);
+//		test.runTest(4, 0, 0, 20);
+//		test.setUp("MWMR_BASIC", 4, 3, 4);
+//		test.runTest(4, 0, 0, 20);
+//		test.setUp("MWMR_BASIC", 4, 3, 4);
+//		test.runTest(4, 0, 0, 20);
+
+		test.LOG.info("Done!");
+
 	}
-	
-	
+
+	public void setUp(String t, int numberOfThreads, int numberOfTreeLevels, int numberOfWriters) throws Exception {
+
+		SketchType type_ = SketchType.valueOf(t);
+
+		switch (type_) {
+		case ORIGINAL:
+			ds_ = HeapUpdateDoublesSketch.newInstance(k_);
+			LOG.info(
+					"=============================================ORIGINAL=============================================");
+			break;
+		case SWMR_BASIC:
+			ds_ = SWSRHeapUpdateDoublesSketch.newInstance(k_);
+			LOG.info(
+					"=============================================SWMR_BASIC===========================================");
+			break;
+		case LOCK_BASE_OIGENAL:
+			ds_ = new LockBasedHeapUpdateDoublesSketch(k_);
+			LOG.info(
+					"=============================================LOCK_BASE_OIGENAL====================================");
+			break;
+		case MWMR_BASIC:
+			ds_ = MWMRHeapUpdateDoublesSketch.newInstance(k_, numberOfThreads, numberOfTreeLevels, numberOfWriters);
+			LOG.info(
+					"=============================================MWMR_BASIC===========================================");
+			break;
+		default:
+			assert (false);
+			break;
+		}
+
+		// ds_ = MWMRHeapUpdateDoublesSketch.newInstance(k_, numberOfThreads,
+		// numberOfTreeLevels, numberOfWriters);
+
+//		for (double i = 1; i < 100; i++) {
+//			ds_.update(i);
+//		}
+		
+		LOG.info(ds_.getQuantile(0.5));
+		
+	}
+
 	private void runTest(int writersNum, int readersNum, int mixedNum, long secondsToRun) throws Exception {
 
 		TestContext ctx = new TestContext();
@@ -91,26 +219,26 @@ public class TestPerformance {
 		long totalReads = 0;
 		long totalWrites = 0;
 
-//		LOG.info("Mixed threads:");
+		// LOG.info("Mixed threads:");
 
 		for (MixedThread mixed : mixedList) {
 			totalReads += mixed.readOps_;
 			totalWrites += mixed.writeOps_;
 		}
-//		LOG.info("writeTput = " + (totalWrites / secondsToRun));
-//		LOG.info("readTput = " + (totalReads / secondsToRun));
-//		LOG.info("Total ThPut= " + ((totalReads + totalWrites) / secondsToRun));
+		// LOG.info("writeTput = " + (totalWrites / secondsToRun));
+		// LOG.info("readTput = " + (totalReads / secondsToRun));
+		// LOG.info("Total ThPut= " + ((totalReads + totalWrites) / secondsToRun));
 
 		totalReads = 0;
 		totalWrites = 0;
 
-//		LOG.info("Write threads:");
+		// LOG.info("Write threads:");
 		for (WriterThread writer : writersList) {
 			totalWrites += writer.operationsNum_;
 		}
 		LOG.info("writeTput = " + ((totalWrites / secondsToRun)) / 1000000 + " millions per second");
 
-//		LOG.info("Read threads:");
+		// LOG.info("Read threads:");
 		for (ReaderThread reader : readersList) {
 			totalReads += reader.readOperationsNum_;
 		}
@@ -120,12 +248,12 @@ public class TestPerformance {
 
 	}
 
-
 	public static class WriterThread extends TestThread {
 		// Random rand_ = new Random();
 		// HeapUpdateDoublesSketch ds_;
 		long operationsNum_ = 0;
 		// OperationsNum ops_;
+		public final Log LOG = LogFactory.getLog(WriterThread.class);
 
 		// public WriterThread(TestContext ctx, HeapUpdateDoublesSketch ds) {
 		public WriterThread(HeapUpdateDoublesSketch ds) {
@@ -144,8 +272,8 @@ public class TestPerformance {
 			// LOG.info( "I am a writer and my core is " + ThreadAffinity.currentCore());
 			// }
 
-			 ds_.update(operationsNum_);
-			// LOG.info("Writing. ");
+			ds_.update(operationsNum_);
+			LOG.info("Writing. ");
 			operationsNum_++;
 			// assert(operationsNum_ > 0);
 		}
@@ -189,7 +317,7 @@ public class TestPerformance {
 			// }
 			////
 
-			 ds_.getQuantile(0.5);
+			ds_.getQuantile(0.5);
 			readOperationsNum_++;
 		}
 	}
