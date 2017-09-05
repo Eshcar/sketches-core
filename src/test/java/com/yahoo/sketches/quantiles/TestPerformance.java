@@ -31,25 +31,27 @@ public class TestPerformance {
 		
 		for (int i = 0; i < 3; i++) {
 			test.setUp("ORIGINAL", 1, 3, 1);
-			test.runTest(1, 0, 0, 20);
+			test.runTest(1, 0, 0, 2);
 		}
 		
 		for (int i = 0; i < 3; i++) {
 			test.setUp("LOCK_BASE_OIGENAL", 1, 3, 1);
-			test.runTest(1, 0, 0, 20);
+			test.runTest(1, 0, 0, 2);
 		}
 
 
 		for (int helpers = 1; helpers < 5; helpers++) {
+			test.LOG.info("##########################################helpers = " + helpers + "#############################################");
 			for (int writers = 1; writers < 4; writers++) {
 
+				test.LOG.info("##########################################writers = " + writers + "#############################################");
 				if (writers == 3) {
 					continue;
 				}
 
 				for (int i = 0; i < 3; i++) {
 					test.setUp("MWMR_BASIC", helpers, 3, writers);
-					test.runTest(writers, 0, 0, 20);
+					test.runTest(writers, 0, 0, 2);
 				}
 
 			}
@@ -177,9 +179,11 @@ public class TestPerformance {
 		// ds_ = MWMRHeapUpdateDoublesSketch.newInstance(k_, numberOfThreads,
 		// numberOfTreeLevels, numberOfWriters);
 
-//		for (double i = 1; i < 100; i++) {
-//			ds_.update(i);
-//		}
+		
+		//must warm up!!!
+		for (double i = 1; i < 10000000; i++) {
+			ds_.update(i);
+		}
 		
 		LOG.info(ds_.getQuantile(0.5));
 		
@@ -273,7 +277,6 @@ public class TestPerformance {
 			// }
 
 			ds_.update(operationsNum_);
-			LOG.info("Writing. ");
 			operationsNum_++;
 			// assert(operationsNum_ > 0);
 		}

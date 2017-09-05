@@ -140,7 +140,13 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 			threadWriteContext.index_ = 0;
 			threadWriteContext.buffer_ = new double[2 * k_];
 			threadWriteContext.id_ = WritersID.incrementAndGet();
-			threadWriteContext.NextBaseTreeNodeNum_ = threadWriteContext.id_;
+			
+			if(threadWriteContext.id_ == 1) {
+				threadWriteContext.NextBaseTreeNodeNum_ = 1;
+			}else {
+				threadWriteContext.NextBaseTreeNodeNum_ = threadWriteContext.id_ - 1;
+			}
+			
 			
 			threadWriteLocal_.set(threadWriteContext);
 		}
@@ -268,11 +274,28 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 
 		// LOG.info("before while. curr = " + curr);
 
+		int skip;
+		int id;
+		
+		if(threadWrtieContext.id_ == 1) {
+			skip = 1;
+			id = 1;
+		}else {
+			id = threadWrtieContext.id_ - 1;
+			skip = numberOfWriters_;
+		}
+		
 		while (true) {
 
-			int next = curr + numberOfWriters_;
+			
+//			int next = curr + numberOfWriters_;
+//			if (next > numberOfLeaves) {
+//				next = threadWrtieContext.id_;
+//			}
+			
+			int next = curr + skip;
 			if (next > numberOfLeaves) {
-				next = threadWrtieContext.id_;
+				next = id;
 			}
 
 			// LOG.info("in while 1: curr = " + curr);
