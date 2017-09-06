@@ -166,12 +166,12 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 					threadAffinityContext.affinitiyIsSet = true;
 					
 
-					int core = Affinity_.getAndIncrement();
+					int core = Affinity_.incrementAndGet();
 
 					LOG.info("I am a writer and my core is " + ThreadAffinity.currentCore());
 					long mask = 1 << core;
 					ThreadAffinity.setCurrentThreadAffinityMask(mask);
-					LOG.info("I am a writer and my core is " + ThreadAffinity.currentCore());
+					LOG.info("I am a writer and my new core is " + ThreadAffinity.currentCore());
 					
 					threadAffinityLocal_.set(threadAffinityContext);
 				}
@@ -636,6 +636,30 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 			// // TODO: handle exception
 			// LOG.info("catched RuntimeException: " + e);
 			// }
+			
+			try {
+				ThreadAffinityContext threadAffinityContext = threadAffinityLocal_.get();
+				
+//				LOG.info("WTF?");
+				
+				if (threadAffinityContext == null) {
+					threadAffinityContext = new ThreadAffinityContext();
+					threadAffinityContext.affinitiyIsSet = true;
+					
+
+					int core = Affinity_.incrementAndGet();
+
+					LOG.info("I am a helper and my core is " + ThreadAffinity.currentCore());
+					long mask = 1 << core;
+					ThreadAffinity.setCurrentThreadAffinityMask(mask);
+					LOG.info("I am a helper and my new core is " + ThreadAffinity.currentCore());
+					
+					threadAffinityLocal_.set(threadAffinityContext);
+				}
+			} catch (Exception e) {
+				// TODO: handle exception
+				LOG.info("catched RuntimeException: " + e);
+			}
 
 		}
 
