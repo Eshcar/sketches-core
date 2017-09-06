@@ -24,40 +24,46 @@ public class TestPerformance {
 
 		TestPerformance test = new TestPerformance();
 
-		// test.LOG.info("setUp(1,2,1), 1 writers 0 readers");
-		// test.LOG.info("");
-
-
-		
-		for (int i = 0; i < 3; i++) {
-			test.setUp("ORIGINAL", 1, 3, 1);
-			test.runTest(1, 0, 0, 2);
-		}
-		
-		for (int i = 0; i < 3; i++) {
-			test.setUp("LOCK_BASE_OIGENAL", 1, 3, 1);
-			test.runTest(1, 0, 0, 2);
+		try {
+			test.LOG.info("I am the main thread and my core is " + ThreadAffinity.currentCore());
+			long mask = 1 << 12;
+			ThreadAffinity.setCurrentThreadAffinityMask(mask);
+			test.LOG.info("I am the main thread and my core is " + ThreadAffinity.currentCore());
+		} catch (Exception e) {
+			// TODO: handle exception
+			test.LOG.info("catched RuntimeException: " + e);
 		}
 
+		// for (int i = 0; i < 3; i++) {
+		// test.setUp("ORIGINAL", 1, 3, 1);
+		// test.runTest(1, 0, 0, 2);
+		// }
+		//
+		// for (int i = 0; i < 3; i++) {
+		// test.setUp("LOCK_BASE_OIGENAL", 1, 3, 1);
+		// test.runTest(1, 0, 0, 2);
+		// }
 
 		for (int helpers = 1; helpers < 5; helpers++) {
-			test.LOG.info("##########################################helpers = " + helpers + "#############################################");
+			test.LOG.info("##########################################helpers = " + helpers
+					+ "#############################################");
 			for (int writers = 1; writers < 5; writers++) {
 
-				test.LOG.info("##########################################writers = " + writers + "#############################################");
+				test.LOG.info("##########################################writers = " + writers
+						+ "#############################################");
 				if (writers == 3) {
 					continue;
 				}
 
 				for (int i = 0; i < 3; i++) {
 					test.setUp("MWMR_BASIC", helpers, 3, writers);
-					test.runTest(writers, 0, 0, 20);
+					test.runTest(writers, 0, 0, 2);
 				}
 
 			}
 
 		}
-//
+		//
 
 		test.LOG.info("Done!");
 
@@ -96,14 +102,13 @@ public class TestPerformance {
 		// ds_ = MWMRHeapUpdateDoublesSketch.newInstance(k_, numberOfThreads,
 		// numberOfTreeLevels, numberOfWriters);
 
-		
-		//must warm up!!!
+		// must warm up!!!
 		for (double i = 1; i < 10000000; i++) {
 			ds_.update(i);
 		}
-		
+
 		LOG.info(ds_.getQuantile(0.5));
-		
+
 	}
 
 	private void runTest(int writersNum, int readersNum, int mixedNum, long secondsToRun) throws Exception {

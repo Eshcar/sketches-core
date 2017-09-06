@@ -141,23 +141,23 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 		}
 		// Do we need a fence here?
 
-		try {
-			ThreadAffinityContext threadAffinityContext = threadAffinityLocal_.get();
-			if (threadAffinityContext == null) {
-				threadAffinityContext = new ThreadAffinityContext();
-				threadAffinityContext.affinitiyIsSet = true;
-
-				int core = Affinity_.getAndIncrement();
-
-				LOG.info("I am a writer and my core is " + ThreadAffinity.currentCore());
-				long mask = 1 << core;
-				ThreadAffinity.setCurrentThreadAffinityMask(mask);
-				LOG.info("I am a writer and my core is " + ThreadAffinity.currentCore());
-			}
-		} catch (Exception e) {
-			// TODO: handle exception
-			LOG.info("catched RuntimeException: " + e);
-		}
+//		try {
+//			ThreadAffinityContext threadAffinityContext = threadAffinityLocal_.get();
+//			if (threadAffinityContext == null) {
+//				threadAffinityContext = new ThreadAffinityContext();
+//				threadAffinityContext.affinitiyIsSet = true;
+//
+//				int core = Affinity_.getAndIncrement();
+//
+//				LOG.info("I am a writer and my core is " + ThreadAffinity.currentCore());
+//				long mask = 1 << core;
+//				ThreadAffinity.setCurrentThreadAffinityMask(mask);
+//				LOG.info("I am a writer and my core is " + ThreadAffinity.currentCore());
+//			}
+//		} catch (Exception e) {
+//			// TODO: handle exception
+//			LOG.info("catched RuntimeException: " + e);
+//		}
 
 		ThreadWriteContext threadWriteContext = threadWriteLocal_.get();
 		if (threadWriteContext == null) {
@@ -613,24 +613,24 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 
 		public void setAffinity() {
 
-			try {
-
-				ThreadAffinityContext threadAffinityContext = ds_.threadAffinityLocal_.get();
-				if (threadAffinityContext == null) {
-					threadAffinityContext = new ThreadAffinityContext();
-					threadAffinityContext.affinitiyIsSet = true;
-
-					int core = ds_.Affinity_.getAndIncrement();
-
-					LOG.info("I am a writer and my core is " + ThreadAffinity.currentCore());
-					long mask = 1 << core;
-					ThreadAffinity.setCurrentThreadAffinityMask(mask);
-					LOG.info("I am a writer and my core is " + ThreadAffinity.currentCore());
-				}
-			} catch (Exception e) {
-				// TODO: handle exception
-				LOG.info("catched RuntimeException: " + e);
-			}
+//			try {
+//
+//				ThreadAffinityContext threadAffinityContext = ds_.threadAffinityLocal_.get();
+//				if (threadAffinityContext == null) {
+//					threadAffinityContext = new ThreadAffinityContext();
+//					threadAffinityContext.affinitiyIsSet = true;
+//
+//					int core = ds_.Affinity_.getAndIncrement();
+//
+//					LOG.info("I am a writer and my core is " + ThreadAffinity.currentCore());
+//					long mask = 1 << core;
+//					ThreadAffinity.setCurrentThreadAffinityMask(mask);
+//					LOG.info("I am a writer and my core is " + ThreadAffinity.currentCore());
+//				}
+//			} catch (Exception e) {
+//				// TODO: handle exception
+//				LOG.info("catched RuntimeException: " + e);
+//			}
 
 		}
 
