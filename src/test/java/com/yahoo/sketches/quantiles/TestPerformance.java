@@ -24,15 +24,17 @@ public class TestPerformance {
 
 		TestPerformance test = new TestPerformance();
 
-		try {
-			test.LOG.info("I am the main thread and my core is " + ThreadAffinity.currentCore());
-			long mask = 1 << 0;
-			ThreadAffinity.setCurrentThreadAffinityMask(mask);
-			test.LOG.info("I am the main thread and my core is " + ThreadAffinity.currentCore());
-		} catch (Exception e) {
-			// TODO: handle exception
-			test.LOG.info("catched RuntimeException: " + e);
-		}
+		// try {
+		// test.LOG.info("I am the main thread and my core is " +
+		// ThreadAffinity.currentCore());
+		// long mask = 1 << 0;
+		// ThreadAffinity.setCurrentThreadAffinityMask(mask);
+		// test.LOG.info("I am the main thread and my core is " +
+		// ThreadAffinity.currentCore());
+		// } catch (Exception e) {
+		// // TODO: handle exception
+		// test.LOG.info("catched RuntimeException: " + e);
+		// }
 
 		// for (int i = 0; i < 3; i++) {
 		// test.setUp("ORIGINAL", 1, 3, 1);
@@ -44,26 +46,57 @@ public class TestPerformance {
 		// test.runTest(1, 0, 0, 2);
 		// }
 
+		test.LOG.info("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
+		test.LOG.info("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
+		test.LOG.info("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
+		test.LOG.info("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%      ****THE TEST****   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
+		test.LOG.info("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
+		test.LOG.info("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
+		test.LOG.info("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
+		
 		for (int helpers = 1; helpers < 5; helpers++) {
-			test.LOG.info("##########################################helpers = " + helpers
-					+ "#############################################");
-			for (int writers = 1; writers < 5; writers++) {
+			for (int levels = 1; levels < 5; levels++) {
+				for (int writers = 1; writers < 5; writers++) {
 
-				test.LOG.info("##########################################writers = " + writers
-						+ "#############################################");
-				if (writers == 3) {
-					continue;
+					int leavesNum = (int) Math.pow(2, (levels - 1));
+					if ((leavesNum % writers) != 0) {
+						continue;
+					}
+					
+					if( (helpers + writers) > 8 ) {
+						continue;
+					}
+
+					test.LOG.info("helpers = " + helpers + " levels = " + levels + " writers = " + writers);
+					for (int i = 0; i < 3; i++) {
+						test.setUp("MWMR_BASIC", 1, levels, writers);
+						test.runTest(writers, 0, 0, 1);
+					}
 				}
-
-				for (int i = 0; i < 3; i++) {
-					test.setUp("MWMR_BASIC", helpers, 3, writers);
-					test.runTest(writers, 0, 0, 2);
-				}
-
 			}
-
 		}
+
+		// for (int helpers = 1; helpers < 5; helpers++) {
+		// test.LOG.info("##########################################helpers = " +
+		// helpers
+		// + "#############################################");
+		// for (int writers = 1; writers < 5; writers++) {
 		//
+		// test.LOG.info("##########################################writers = " +
+		// writers
+		// + "#############################################");
+		// if (writers == 3) {
+		// continue;
+		// }
+		//
+		// for (int i = 0; i < 3; i++) {
+		// test.setUp("MWMR_BASIC", helpers, 3, writers);
+		// test.runTest(writers, 0, 0, 2);
+		// }
+		//
+		// }
+		//
+		// }
 
 		test.LOG.info("Done!");
 

@@ -158,28 +158,28 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 			threadWriteLocal_.set(threadWriteContext);
 		}
 
-		if (threadWriteContext.id_ != 1) {
-			try {
-				ThreadAffinityContext threadAffinityContext = threadAffinityLocal_.get();
-				if (threadAffinityContext == null) {
-					threadAffinityContext = new ThreadAffinityContext();
-					threadAffinityContext.affinitiyIsSet = true;
-					
-
-					int core = Affinity_.incrementAndGet();
-
-					LOG.info("I am a writer and my core is " + ThreadAffinity.currentCore());
-					long mask = 1 << core;
-					ThreadAffinity.setCurrentThreadAffinityMask(mask);
-					LOG.info("I am a writer and my new core is " + ThreadAffinity.currentCore());
-					
-					threadAffinityLocal_.set(threadAffinityContext);
-				}
-			} catch (Exception e) {
-				// TODO: handle exception
-				LOG.info("catched RuntimeException: " + e);
-			}
-		}
+//		if (threadWriteContext.id_ != 1) {
+//			try {
+//				ThreadAffinityContext threadAffinityContext = threadAffinityLocal_.get();
+//				if (threadAffinityContext == null) {
+//					threadAffinityContext = new ThreadAffinityContext();
+//					threadAffinityContext.affinitiyIsSet = true;
+//					
+//
+//					int core = Affinity_.incrementAndGet();
+//
+//					LOG.info("I am a writer and my core is " + ThreadAffinity.currentCore());
+//					long mask = 1 << core;
+//					ThreadAffinity.setCurrentThreadAffinityMask(mask);
+//					LOG.info("I am a writer and my new core is " + ThreadAffinity.currentCore());
+//					
+//					threadAffinityLocal_.set(threadAffinityContext);
+//				}
+//			} catch (Exception e) {
+//				// TODO: handle exception
+//				LOG.info("catched RuntimeException: " + e);
+//			}
+//		}
 
 		threadWriteContext.buffer_[threadWriteContext.index_] = dataItem;
 		threadWriteContext.index_++;
@@ -676,7 +676,7 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 		@Override
 		public void run() {
 
-			setAffinity();
+//			setAffinity();
 
 			MWMRHeapUpdateDoublesSketch ds = getSketch();
 			DoublesArrayAccessor TreeBuffer = ds.getTreeBuffer_();
@@ -756,7 +756,7 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 		@Override
 		public void run() {
 
-			setAffinity();
+//			setAffinity();
 
 			MWMRHeapUpdateDoublesSketch ds = getSketch();
 			DoublesArrayAccessor TreeBaseBuffer = ds.getTreeBaseBuffer_();
@@ -801,7 +801,7 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 		@Override
 		public void run() {
 
-			setAffinity();
+//			setAffinity();
 
 			MWMRHeapUpdateDoublesSketch ds = getSketch();
 			DoublesArrayAccessor TreeBuffer = ds.getTreeBuffer_();
