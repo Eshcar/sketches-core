@@ -26,7 +26,7 @@ public class TestPerformance {
 
 		try {
 			test.LOG.info("I am the main thread and my core is " + ThreadAffinity.currentCore());
-			long mask = 1 << 12;
+			long mask = 1 << 0;
 			ThreadAffinity.setCurrentThreadAffinityMask(mask);
 			test.LOG.info("I am the main thread and my core is " + ThreadAffinity.currentCore());
 		} catch (Exception e) {
