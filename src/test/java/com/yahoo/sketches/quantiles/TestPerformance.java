@@ -17,7 +17,7 @@ public class TestPerformance {
 
 	private HeapUpdateDoublesSketch ds_;
 	// private static final SketchType type_ = ;
-	private final int k_ = 128;
+	private final int k_ = 4096;
 	public final Log LOG = LogFactory.getLog(TestPerformance.class);
 
 	public static void main(String[] args) throws Exception {
@@ -54,23 +54,24 @@ public class TestPerformance {
 		test.LOG.info("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
 		test.LOG.info("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
 		
-		for (int helpers = 1; helpers < 5; helpers++) {
-			for (int levels = 1; levels < 5; levels++) {
-				for (int writers = 1; writers < 5; writers++) {
+		for (int helpers = 2; helpers < 3; helpers++) {
+			for (int levels = 6; levels < 7	; levels++) {
+				for (int writers = 8; writers < 9; writers++) {
 
 					int leavesNum = (int) Math.pow(2, (levels - 1));
 					if ((leavesNum % writers) != 0) {
 						continue;
 					}
 					
-					if( (helpers + writers) > 8 ) {
-						continue;
-					}
+//					if( (helpers + writers) > 8 ) {
+//						continue;
+//					}
 
 					test.LOG.info("helpers = " + helpers + " levels = " + levels + " writers = " + writers);
-					for (int i = 0; i < 3; i++) {
-						test.setUp("MWMR_BASIC", 1, levels, writers);
-						test.runTest(writers, 0, 0, 1);
+					for (int i = 0; i < 15; i++) {
+						test.setUp("MWMR_BASIC", 2, 6, 8);
+						test.runTest(8, 0, 0, 30);
+						System.gc();
 					}
 				}
 			}
