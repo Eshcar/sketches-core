@@ -1,6 +1,10 @@
 package com.yahoo.sketches.quantiles;
 
+import java.io.IOException;
 import java.util.List;
+import java.util.logging.FileHandler;
+import java.util.logging.Logger;
+import java.util.logging.SimpleFormatter;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -19,10 +23,28 @@ public class TestPerformance {
 	// private static final SketchType type_ = ;
 	private final int k_ = 4096;
 	public final Log LOG = LogFactory.getLog(TestPerformance.class);
+	public Logger logger = Logger.getLogger("MyLog");
+	public FileHandler fh;
 
 	public static void main(String[] args) throws Exception {
 
 		TestPerformance test = new TestPerformance();
+
+		try {
+
+			// This block configure the logger with handler and formatter
+			test.fh = new FileHandler("/Users/sashaspiegelman/sketches/sketches-core/testlog", true);
+			test.logger.addHandler(test.fh);
+			SimpleFormatter formatter = new SimpleFormatter();
+			test.fh.setFormatter(formatter);
+
+			// the following statement is used to log any messages
+
+		} catch (SecurityException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 
 		// try {
 		// test.LOG.info("I am the main thread and my core is " +
@@ -36,59 +58,25 @@ public class TestPerformance {
 		// test.LOG.info("catched RuntimeException: " + e);
 		// }
 
-
-//		test.LOG.info("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
-//		test.LOG.info("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
-//		test.LOG.info("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
-//		test.LOG.info("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%      ****THE TEST****   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
-//		test.LOG.info("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
-//		test.LOG.info("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
-//		test.LOG.info("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
-		
 		int levels = Integer.parseInt(args[0]);
 		int helpers = Integer.parseInt(args[1]);
 		int writers = Integer.parseInt(args[2]);
 		int time = Integer.parseInt(args[3]);
-		
-		test.LOG.info("helpers = " + helpers + " levels = " + levels + " writers = " + writers);
-		
+		boolean print = Boolean.parseBoolean(args[4]);
+
+		if (print) {
+			test.logger.info("helpers = " + helpers + " levels = " + levels + " writers = " + writers);
+		}
+
 		test.setUp("MWMR_BASIC", helpers, levels, writers);
 		test.runTest(writers, 0, 0, time);
-		
+
 		test.LOG.info("Done!");
-		
+
 		System.exit(0);
-		
-		
-		
-//		for (int helpers = 2; helpers < 3; helpers++) {
-//			for (int levels = 6; levels < 7	; levels++) {
-//				for (int writers = 8; writers < 9; writers++) {
-//
-//					int leavesNum = (int) Math.pow(2, (levels - 1));
-//					if ((leavesNum % writers) != 0) {
-//						continue;
-//					}
-//					
-////					if( (helpers + writers) > 8 ) {
-////						continue;
-////					}
-//
-//					test.LOG.info("helpers = " + helpers + " levels = " + levels + " writers = " + writers);
-//					for (int i = 0; i < 15; i++) {
-//						test.setUp("MWMR_BASIC", 2, 6, 8);
-//						test.runTest(8, 0, 0, 30);
-//						test.clean();
-//						System.gc();
-//					}
-//				}
-//			}
-//		}
-
-
 
 	}
-	
+
 	public void clean() {
 		ds_.clean();
 	}
@@ -187,6 +175,7 @@ public class TestPerformance {
 			totalWrites += writer.operationsNum_;
 		}
 		LOG.info("writeTput = " + ((totalWrites / secondsToRun)) / 1000000 + " millions per second");
+		logger.info("writeTput = " + ((totalWrites / secondsToRun)) / 1000000 + " millions per second");
 
 		// LOG.info("Read threads:");
 		for (ReaderThread reader : readersList) {
