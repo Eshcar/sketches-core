@@ -36,71 +36,61 @@ public class TestPerformance {
 		// test.LOG.info("catched RuntimeException: " + e);
 		// }
 
-		// for (int i = 0; i < 3; i++) {
-		// test.setUp("ORIGINAL", 1, 3, 1);
-		// test.runTest(1, 0, 0, 2);
-		// }
-		//
-		// for (int i = 0; i < 3; i++) {
-		// test.setUp("LOCK_BASE_OIGENAL", 1, 3, 1);
-		// test.runTest(1, 0, 0, 2);
-		// }
 
-		test.LOG.info("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
-		test.LOG.info("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
-		test.LOG.info("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
-		test.LOG.info("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%      ****THE TEST****   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
-		test.LOG.info("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
-		test.LOG.info("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
-		test.LOG.info("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
+//		test.LOG.info("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
+//		test.LOG.info("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
+//		test.LOG.info("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
+//		test.LOG.info("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%      ****THE TEST****   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
+//		test.LOG.info("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
+//		test.LOG.info("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
+//		test.LOG.info("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
 		
-		for (int helpers = 2; helpers < 3; helpers++) {
-			for (int levels = 6; levels < 7	; levels++) {
-				for (int writers = 8; writers < 9; writers++) {
-
-					int leavesNum = (int) Math.pow(2, (levels - 1));
-					if ((leavesNum % writers) != 0) {
-						continue;
-					}
-					
-//					if( (helpers + writers) > 8 ) {
+		int levels = Integer.parseInt(args[0]);
+		int helpers = Integer.parseInt(args[1]);
+		int writers = Integer.parseInt(args[2]);
+		int time = Integer.parseInt(args[3]);
+		
+		test.LOG.info("helpers = " + helpers + " levels = " + levels + " writers = " + writers);
+		
+		test.setUp("MWMR_BASIC", helpers, levels, writers);
+		test.runTest(writers, 0, 0, time);
+		
+		test.LOG.info("Done!");
+		
+		System.exit(0);
+		
+		
+		
+//		for (int helpers = 2; helpers < 3; helpers++) {
+//			for (int levels = 6; levels < 7	; levels++) {
+//				for (int writers = 8; writers < 9; writers++) {
+//
+//					int leavesNum = (int) Math.pow(2, (levels - 1));
+//					if ((leavesNum % writers) != 0) {
 //						continue;
 //					}
+//					
+////					if( (helpers + writers) > 8 ) {
+////						continue;
+////					}
+//
+//					test.LOG.info("helpers = " + helpers + " levels = " + levels + " writers = " + writers);
+//					for (int i = 0; i < 15; i++) {
+//						test.setUp("MWMR_BASIC", 2, 6, 8);
+//						test.runTest(8, 0, 0, 30);
+//						test.clean();
+//						System.gc();
+//					}
+//				}
+//			}
+//		}
 
-					test.LOG.info("helpers = " + helpers + " levels = " + levels + " writers = " + writers);
-					for (int i = 0; i < 15; i++) {
-						test.setUp("MWMR_BASIC", 2, 6, 8);
-						test.runTest(8, 0, 0, 30);
-						System.gc();
-					}
-				}
-			}
-		}
 
-		// for (int helpers = 1; helpers < 5; helpers++) {
-		// test.LOG.info("##########################################helpers = " +
-		// helpers
-		// + "#############################################");
-		// for (int writers = 1; writers < 5; writers++) {
-		//
-		// test.LOG.info("##########################################writers = " +
-		// writers
-		// + "#############################################");
-		// if (writers == 3) {
-		// continue;
-		// }
-		//
-		// for (int i = 0; i < 3; i++) {
-		// test.setUp("MWMR_BASIC", helpers, 3, writers);
-		// test.runTest(writers, 0, 0, 2);
-		// }
-		//
-		// }
-		//
-		// }
 
-		test.LOG.info("Done!");
-
+	}
+	
+	public void clean() {
+		ds_.clean();
 	}
 
 	public void setUp(String t, int numberOfThreads, int numberOfTreeLevels, int numberOfWriters) throws Exception {

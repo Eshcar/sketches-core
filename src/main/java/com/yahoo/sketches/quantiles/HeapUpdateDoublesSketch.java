@@ -152,6 +152,9 @@ public class HeapUpdateDoublesSketch extends UpdateDoublesSketch {
 	public int getDebug_() {
 		return -7;
 	}
+	
+	public void clean() {
+	}
 
   @Override
   public void update(final double dataItem) {

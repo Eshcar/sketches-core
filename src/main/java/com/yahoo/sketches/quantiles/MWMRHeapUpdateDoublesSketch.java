@@ -6,6 +6,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -538,7 +539,14 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 	}
 
 	public void clean() {
-		this.executorSevice_.shutdown();
+		
+		try {
+		executorSevice_.shutdown();
+		executorSevice_.awaitTermination(5, TimeUnit.SECONDS); // blocks/waits for certain interval as specified
+		executorSevice_.shutdownNow();
+		}catch (Exception e) {
+			LOG.info("Exception: " + e);
+		}
 	}
 
 	@Override
