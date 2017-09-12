@@ -28,6 +28,10 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 		boolean affinitiyIsSet = false;
 	}
 
+	private static class ThreadHelperContext {
+		DoublesArrayAccessor buffer2k_;
+	}
+
 	private static class ThreadWriteContext {
 		double[] buffer_;
 		int index_;
@@ -47,6 +51,7 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 	private final ThreadLocal<ThreadReadContext> threadReadLocal_ = new ThreadLocal<ThreadReadContext>();
 	private final ThreadLocal<ThreadWriteContext> threadWriteLocal_ = new ThreadLocal<ThreadWriteContext>();
 	public final ThreadLocal<ThreadAffinityContext> threadAffinityLocal_ = new ThreadLocal<ThreadAffinityContext>();
+	private final ThreadLocal<ThreadHelperContext> threadHelperContext_ = new ThreadLocal<ThreadHelperContext>();
 	private AtomicLong atomicBitPattern_ = new AtomicLong();
 	private AtomicInteger atomicBaseBufferCount_ = new AtomicInteger();
 	private ExecutorService executorSevice_;
@@ -204,7 +209,7 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 			int dstInd = (baseTreeNodeNum - 1) * 2 * k_;
 			System.arraycopy(threadWriteContext.buffer_, 0, TreeBaseBuffer_.getBuffer_(), dstInd, 2 * k_);
 			treeBaseBitPattern_[baseTreeNodeNum - 1].set(1);
-			treeBaselock_[baseTreeNodeNum -1].set(false);
+			treeBaselock_[baseTreeNodeNum - 1].set(false);
 
 			assert (baseTreeNodeNum > 1);
 
@@ -364,7 +369,7 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 						}
 						threadWrtieContext.steal_ = false;
 						return curr;
-					}else {
+					} else {
 						treeBaselock_[curr - 1].set(false);
 					}
 				}
@@ -539,12 +544,12 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 	}
 
 	public void clean() {
-		
+
 		try {
-		executorSevice_.shutdown();
-		executorSevice_.awaitTermination(5, TimeUnit.SECONDS); // blocks/waits for certain interval as specified
-		executorSevice_.shutdownNow();
-		}catch (Exception e) {
+			executorSevice_.shutdown();
+			executorSevice_.awaitTermination(5, TimeUnit.SECONDS); // blocks/waits for certain interval as specified
+			executorSevice_.shutdownNow();
+		} catch (Exception e) {
 			LOG.info("Exception: " + e);
 		}
 	}
@@ -729,7 +734,7 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 			assert (TreeBitPattern[0].get() == 1);
 			if (PropogationLock.get() == 1) {
 				ds.getExecutorSevice_().execute(this);
-//				LOG.info("Propogation is locked");
+				// LOG.info("Propogation is locked");
 				return;
 			}
 
@@ -858,12 +863,20 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 				ds.getExecutorSevice_().execute(this);
 				// LOG.info("BackgroundTreeWriter: node num = " + nodeNumber_);
 
-//				LOG.info("treeBaseBitPattern_ = " + Arrays.toString(treeBaseBitPattern_));
-//				LOG.info("treeBitPattern_ = " + Arrays.toString(treeBitPattern_));
-//				LOG.info("treeReadyBitPattern_" + Arrays.toString(treeReadyBitPattern_));
+				// LOG.info("treeBaseBitPattern_ = " + Arrays.toString(treeBaseBitPattern_));
+				// LOG.info("treeBitPattern_ = " + Arrays.toString(treeBitPattern_));
+				// LOG.info("treeReadyBitPattern_" + Arrays.toString(treeReadyBitPattern_));
 
 				return;
 			}
+
+			
+			ThreadHelperContext THC = threadHelperContext_.get();
+			 if (THC == null) {
+				 THC = new ThreadHelperContext();
+				 THC.buffer2k_ = DoublesArrayAccessor.initialize(2 * k_);
+				 threadHelperContext_.set(THC);
+			 }
 
 			// lock the location
 			TreeBitPattern[nodeNumber_ - 1].set(1);
@@ -887,9 +900,9 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 
 			FlexDoublesArrayAccessor leftSource = FlexDoublesArrayAccessor.wrap(leftChild, 0, ds.k_);
 			FlexDoublesArrayAccessor rightSource = FlexDoublesArrayAccessor.wrap(rightChild, 0, ds.k_);
-			DoublesArrayAccessor tmp = DoublesArrayAccessor.initialize(2 * ds.k_);
+			DoublesArrayAccessor tmp = THC.buffer2k_;
 
-			DoublesUpdateImpl.mergeTwoSizeKBuffers(leftSource, rightSource, tmp);
+			DoublesUpdateImpl.mergeTwoSizeKBuffers(leftSource, rightSource, tmp); // TODO: move tmp to local memory
 
 			FlexDoublesArrayAccessor dst = FlexDoublesArrayAccessor.wrap(TreeBuffer.getBuffer_(),
 					(nodeNumber_ - 1) * ds.k_, ds.k_);
