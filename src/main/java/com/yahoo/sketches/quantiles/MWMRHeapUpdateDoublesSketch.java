@@ -906,6 +906,9 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 //			DoublesArrayAccessor tmp = THC.buffer2k_;
 
 			DoublesUpdateImpl.mergeTwoSizeKBuffers(leftSource, rightSource, THC.buffer2k_); // 
+			
+			TreeBitPattern[leftChildInd - 1].set(0);
+			TreeBitPattern[rightChildInd - 1].set(0);
 
 			FlexDoublesArrayAccessor dst = FlexDoublesArrayAccessor.wrap(TreeBuffer.getBuffer_(),
 					(nodeNumber_ - 1) * ds.k_, ds.k_);

@@ -116,6 +116,8 @@ public class TestPerformance {
 		// ds_ = MWMRHeapUpdateDoublesSketch.newInstance(k_, numberOfThreads,
 		// numberOfTreeLevels, numberOfWriters);
 
+		LOG.info(ds_.getQuantile(0.5));
+		
 		// must warm up!!!
 		for (double i = 1; i < 10000000; i++) {
 			ds_.update(i);
