@@ -886,27 +886,30 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 			// copy children to local memory and unlock their locations.
 			int leftChildInd = (2 * nodeNumber_);
 			assert (TreeBitPattern[leftChildInd - 1].get() == 1);
-			int fromInd = (leftChildInd - 1) * ds.k_;
-			double[] leftChild = TreeBuffer.getArray(fromInd, ds.k_);
-			TreeBitPattern[leftChildInd - 1].set(0);
+			int fromLeftChild = (leftChildInd - 1) * ds.k_;
+//			double[] leftChild = TreeBuffer.getArray(fromInd, ds.k_);
+//			TreeBitPattern[leftChildInd - 1].set(0);
 
 			int rightChildInd = (2 * nodeNumber_) + 1;
 			assert (TreeBitPattern[rightChildInd - 1].get() == 1);
-			fromInd = (rightChildInd - 1) * ds.k_;
-			double[] rightChild = TreeBuffer.getArray(fromInd, ds.k_);
-			TreeBitPattern[rightChildInd - 1].set(0);
+			int fromRightChild = (rightChildInd - 1) * ds.k_;
+//			double[] rightChild = TreeBuffer.getArray(fromInd, ds.k_);
+//			TreeBitPattern[rightChildInd - 1].set(0);
 
 			// merge sort and zip into the node.
 
-			FlexDoublesArrayAccessor leftSource = FlexDoublesArrayAccessor.wrap(leftChild, 0, ds.k_);
-			FlexDoublesArrayAccessor rightSource = FlexDoublesArrayAccessor.wrap(rightChild, 0, ds.k_);
-			DoublesArrayAccessor tmp = THC.buffer2k_;
+			
+//			FlexDoublesArrayAccessor leftSource = FlexDoublesArrayAccessor.wrap(leftChild, 0, ds.k_);
+//			FlexDoublesArrayAccessor rightSource = FlexDoublesArrayAccessor.wrap(rightChild, 0, ds.k_);
+			FlexDoublesArrayAccessor leftSource = FlexDoublesArrayAccessor.wrap(TreeBuffer.getBuffer_(), fromLeftChild, ds.k_);
+			FlexDoublesArrayAccessor rightSource = FlexDoublesArrayAccessor.wrap(TreeBuffer.getBuffer_(), fromRightChild, ds.k_);
+//			DoublesArrayAccessor tmp = THC.buffer2k_;
 
-			DoublesUpdateImpl.mergeTwoSizeKBuffers(leftSource, rightSource, tmp); // TODO: move tmp to local memory
+			DoublesUpdateImpl.mergeTwoSizeKBuffers(leftSource, rightSource, THC.buffer2k_); // 
 
 			FlexDoublesArrayAccessor dst = FlexDoublesArrayAccessor.wrap(TreeBuffer.getBuffer_(),
 					(nodeNumber_ - 1) * ds.k_, ds.k_);
-			DoublesUpdateImpl.zipSize2KBuffer(tmp, dst);
+			DoublesUpdateImpl.zipSize2KBuffer(THC.buffer2k_, dst);
 
 			makeAndRunNewJob(nodeNumber_, ds, TreeReadyBitPattern);
 		}

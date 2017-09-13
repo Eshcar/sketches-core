@@ -2,6 +2,7 @@ package com.yahoo.sketches.quantiles;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Random;
 import java.util.logging.FileHandler;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
@@ -63,13 +64,14 @@ public class TestPerformance {
 		int writers = Integer.parseInt(args[2]);
 		int time = Integer.parseInt(args[3]);
 		boolean print = Boolean.parseBoolean(args[4]);
+		int updateRetio = Integer.parseInt(args[5]);
 
 		if (print) {
 			test.logger.info("helpers = " + helpers + " levels = " + levels + " writers = " + writers);
 		}
 
 		test.setUp("MWMR_BASIC", helpers, levels, writers);
-		test.runTest(writers, 0, 0, time);
+		test.runTest(writers, 0, 0, time, updateRetio);
 
 		test.LOG.info("Done!");
 
@@ -123,7 +125,8 @@ public class TestPerformance {
 
 	}
 
-	private void runTest(int writersNum, int readersNum, int mixedNum, long secondsToRun) throws Exception {
+	private void runTest(int writersNum, int readersNum, int mixedNum, long secondsToRun, int updateRetio)
+			throws Exception {
 
 		TestContext ctx = new TestContext();
 
@@ -145,7 +148,7 @@ public class TestPerformance {
 
 		List<MixedThread> mixedList = Lists.newArrayList();
 		for (int i = 0; i < mixedNum; i++) {
-			MixedThread mixed = new MixedThread(ds_);
+			MixedThread mixed = new MixedThread(ds_, updateRetio);
 			mixedList.add(mixed);
 			ctx.addThread(mixed);
 		}
@@ -262,23 +265,40 @@ public class TestPerformance {
 
 	public static class MixedThread extends TestThread {
 
-		// Random rand_ = new Random();
+		Random rand_ = new Random();
+		int Low_ = 1;
+		int High_ = 100;
+		int updateRetio_;
+		boolean latency_ = false;
+
+		int readTopLatency_;
+
 		// HeapUpdateDoublesSketch ds_;
 		double writeOps_ = 0;
 		long readOps_ = 0;
 		int i_ = 1;
 
-		public MixedThread(HeapUpdateDoublesSketch ds) {
+		public MixedThread(HeapUpdateDoublesSketch ds, int updateRetio) {
 			super(ds);
 			// ds_ = ds;
+			updateRetio_ = updateRetio;
 		}
 
 		@Override
 		public void doWork() throws Exception {
 
-			if ((i_ % 2) == 0) {
-				ds_.getQuantile(0.5);
-				readOps_++;
+			int res = rand_.nextInt(High_ - Low_ + 1) + Low_;
+
+			if (res > updateRetio_) {
+
+				if (latency_) {
+					long startTime = System.nanoTime();
+					ds_.getQuantile(0.5);
+					long elapsedTime = System.nanoTime() - startTime;
+				} else {
+					ds_.getQuantile(0.5);
+					readOps_++;
+				}
 			} else {
 				ds_.update(i_);
 				writeOps_++;
