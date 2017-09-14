@@ -74,12 +74,17 @@ public class TestPerformance {
 
 		test.setUp("MWMR_BASIC", writers);
 		test.runTest(writers, 0, 0, time, updateRetio);
+		test.prtintDebug();
 		test.clean();
 
 		test.LOG.info("Done!");
 
 		System.exit(0);
 
+	}
+	
+	void prtintDebug() {
+		LOG.info("debug = " + ds_.getDebug_());
 	}
 
 	public void clean() {

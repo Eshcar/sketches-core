@@ -45,6 +45,8 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 //	private int numberOfWriters_;
 	private double[] BaseBuffers_;
 	private AtomicBoolean[] BaseBufferPatterns_;
+	
+	private long debug_ = 0;
 
 	public BackgroundPropogator Propogator_;
 
@@ -81,6 +83,10 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 		hqs.startPropogator(numberOfWriters);
 
 		return hqs;
+	}
+	
+	public long getDebug_(){
+		return debug_;
 	}
 	
 	public void startPropogator(int numberOfWriters) {
@@ -463,6 +469,7 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 				} else {
 					index = (index + 1) % (2 * numberOfThreads_);
 					i++;
+					debug_++;
 					// TODO if index == startFrom then sleep for a while.
 				}
 			}

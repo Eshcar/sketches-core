@@ -149,7 +149,7 @@ public class HeapUpdateDoublesSketch extends UpdateDoublesSketch {
     return hds;
   }
   
-	public int getDebug_() {
+	public long getDebug_() {
 		return -7;
 	}
 	
