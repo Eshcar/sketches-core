@@ -59,19 +59,22 @@ public class TestPerformance {
 		// test.LOG.info("catched RuntimeException: " + e);
 		// }
 
-		int levels = Integer.parseInt(args[0]);
+//		int levels = Integer.parseInt(args[0]);
 //		int helpers = Integer.parseInt(args[1]);
-		int writers = Integer.parseInt(args[1]);
-		int time = Integer.parseInt(args[2]);
-		boolean print = Boolean.parseBoolean(args[3]);
-		int updateRetio = Integer.parseInt(args[4]);
-
+		int writers = Integer.parseInt(args[0]);
+		int time = Integer.parseInt(args[1]);
+		boolean print = Boolean.parseBoolean(args[2]);
+//		int updateRetio = Integer.parseInt(args[4]);
+		int updateRetio = 50;
+		
+		
 		if (print) {
-			test.logger.info(" levels = " + levels + " writers = " + writers);
+			test.logger.info("writers = " + writers);
 		}
 
-		test.setUp("MWMR_BASIC", levels, writers);
+		test.setUp("MWMR_BASIC", writers);
 		test.runTest(writers, 0, 0, time, updateRetio);
+		test.clean();
 
 		test.LOG.info("Done!");
 
@@ -83,7 +86,7 @@ public class TestPerformance {
 		ds_.clean();
 	}
 
-	public void setUp(String t, int numberOfTreeLevels, int numberOfWriters) throws Exception {
+	public void setUp(String t, int numberOfWriters) throws Exception {
 
 		SketchType type_ = SketchType.valueOf(t);
 
@@ -120,6 +123,7 @@ public class TestPerformance {
 		
 		// must warm up!!!
 		for (double i = 1; i < 10000000; i++) {
+//			LOG.info("hi = " + i);
 			ds_.update(i);
 		}
 
