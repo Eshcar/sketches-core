@@ -151,11 +151,11 @@ public class ConcurrencyTestUtils {
 			 while (!start_.get()) {}
 
 			try {
-				while (!stop_.get()) {
+				while (!stop_.get()) {  //TODO can impact performance!
 					
-//					assert(test.get() == 1);
-
-					doWork();
+					for (int i = 0; i < 10000000; i++) {
+						doWork();
+					}
 				}
 			} catch (Throwable t) {
 				LOG.info("catched RuntimeException: " + t);

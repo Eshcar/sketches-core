@@ -70,7 +70,7 @@ public class ConccurencyFramworkTest {
 					"=============================================LOCK_BASE_OIGENAL====================================");
 			break;
 		case MWMR_BASIC:
-			ds_ = MWMRHeapUpdateDoublesSketch.newInstance(k_, 1, 2, 1);
+			ds_ = MWMRHeapUpdateDoublesSketch.newInstance(k_, 1);
 			LOG.info(
 					"=============================================MWMR_BASIC===========================================");
 			break;
