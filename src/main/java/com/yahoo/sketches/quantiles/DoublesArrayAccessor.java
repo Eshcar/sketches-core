@@ -14,18 +14,32 @@ final class DoublesArrayAccessor extends DoublesBufferAccessor {
   private int numItems_;
   private double[] buffer_;
 
-  private DoublesArrayAccessor(final double[] buffer) {
+
+private DoublesArrayAccessor(final double[] buffer) {
     numItems_ = buffer.length;
     buffer_ = buffer;
   }
-
+  
+//  private DoublesArrayAccessor(final double[] buffer, int numItems) {
+//	    numItems_ = numItems;
+//	    buffer_ = buffer;
+//	  }
+//  
   static DoublesArrayAccessor wrap(final double[] buffer) {
     return new DoublesArrayAccessor(buffer);
   }
+  
+//  static DoublesArrayAccessor wrap(final double[] buffer, int numItems) {
+//	    return new DoublesArrayAccessor(buffer, numItems);
+//	  }
 
   static DoublesArrayAccessor initialize(final int numItems) {
     return new DoublesArrayAccessor(new double[numItems]);
   }
+  
+  public double[] getBuffer_() {
+	return buffer_;
+}
 
   @Override
   double get(final int index) {
