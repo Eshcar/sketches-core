@@ -6,6 +6,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -48,7 +51,8 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 	
 	private long debug_ = 0;
 
-	public BackgroundPropogator Propogator_;
+	private ExecutorService executorService_;
+//	public BackgroundPropogator Propogator_;
 
 	private AtomicInteger WritersID = new AtomicInteger();
 
@@ -78,9 +82,9 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 			hqs.BaseBufferPatterns_[i] = new AtomicBoolean(false);
 		}
 
-		// TODO invoke the propogator.
+		hqs.executorService_ = Executors.newSingleThreadExecutor();
 
-		hqs.startPropogator(numberOfWriters);
+//		hqs.startPropogator(numberOfWriters);
 
 		return hqs;
 	}
@@ -89,10 +93,10 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 		return debug_;
 	}
 	
-	public void startPropogator(int numberOfWriters) {
-		Propogator_ = new BackgroundPropogator(numberOfWriters);
-		Propogator_.start();
-	}
+//	public void startPropogator(int numberOfWriters) {
+//		Propogator_ = new BackgroundPropogator(numberOfWriters);
+//		Propogator_.start();
+//	}
 
 
 	@Override
@@ -171,7 +175,11 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 			FlexDoublesArrayAccessor bufIn = FlexDoublesArrayAccessor.wrap(BaseBuffers_, startIndex, 2 * k_);
 			FlexDoublesArrayAccessor bufOut = FlexDoublesArrayAccessor.wrap(BaseBuffers_, startIndex, k_);
 			DoublesUpdateImpl.zipSize2KBuffer(bufIn, bufOut);
-			BaseBufferPatterns_[myLocation].set(true);
+			BaseBufferPatterns_[myLocation].set(true);  //TODO: we do not need this fence!
+			
+			BackgroundPropogation job = new BackgroundPropogation(myLocation);
+			executorService_.execute(job);
+			
 		}
 
 		if (threadWriteContext.index_ == (2 * 2 * k_)) {
@@ -181,13 +189,17 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 			FlexDoublesArrayAccessor bufOut = FlexDoublesArrayAccessor.wrap(BaseBuffers_, startIndex, k_);
 			DoublesUpdateImpl.zipSize2KBuffer(bufIn, bufOut);
 
-			BaseBufferPatterns_[myLocation + 1].set(true);
+			BaseBufferPatterns_[myLocation + 1].set(true);  //TODO: we do not need this fence!
+			
+			BackgroundPropogation job = new BackgroundPropogation(myLocation + 1);
+			executorService_.execute(job);
+			
+			
 			threadWriteContext.index_ = 0;
 		}
 
 	}
 
-	// TODO: check the logic.
 	@Override
 	public double getQuantile(final double fraction) {
 
@@ -350,10 +362,12 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 
 	public void clean() {
 
-		Propogator_.setRun_(false);
+		
+//		Propogator_.setRun_(false);
 		
 		try {
-			Propogator_.join();
+//			Propogator_.join();
+			executorService_.shutdown();
 		}catch (Exception e) {
 			LOG.info("exception: " + e);
 		}
@@ -414,67 +428,23 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 //			}
 //
 //		}
-
-	public  class BackgroundPropogator extends Thread {
-
-		private volatile boolean run_ = true;
-		private int numberOfThreads_;
-
-		BackgroundPropogator(int numberOfThreads) {
-			numberOfThreads_ = numberOfThreads;
+	
+	public class BackgroundPropogation implements Runnable{
+		
+		int location_;
+		
+		BackgroundPropogation(int location){
+			location_ = location;
 		}
-
+		
 		@Override
 		public void run() {
-
-			int startFrom = 0;
-			int locationToPropogate;
-
-			while (true) {
-
-				locationToPropogate = findWork(startFrom);
-				if (locationToPropogate == -1) {
-					LOG.info("bi bi");
-					return;
-				} else {
-					startFrom = ((locationToPropogate + 1) % numberOfThreads_);
-				}
-				
-//				LOG.info("propgating");
-				propogate(locationToPropogate);
-
-			}
-
+			
+			propogate(location_);
+			
 		}
-
-		int findWork(int startFrom) {
-
-			int i = 0;
-			int index = startFrom;
-
-			while (true) {
-				
-				
-
-				if (i == 10000000) { // fence only when you really think the test is over.
-					if (!run_) {
-						return -1;
-					} else {
-						i = 0;
-					}
-				}
-
-				if (BaseBufferPatterns_[index].get()) {
-					return index;
-				} else {
-					index = (index + 1) % (2 * numberOfThreads_);
-					i++;
-					debug_++;
-					// TODO if index == startFrom then sleep for a while.
-				}
-			}
-		}
-
+		
+		
 		void propogate(int locationToPropogate) {
 
 			//
@@ -530,11 +500,130 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 			putN(newN);
 
 		}
-
-		public void setRun_(boolean run_) {
-			this.run_ = run_;
-		}
-
+		
+		
 	}
+
+//	public class BackgroundPropogator extends Thread {
+//
+//		private volatile boolean run_ = true;
+//		private int numberOfThreads_;
+//
+//		BackgroundPropogator(int numberOfThreads) {
+//			numberOfThreads_ = numberOfThreads;
+//		}
+//
+//		@Override
+//		public void run() {
+//
+//			int startFrom = 0;
+//			int locationToPropogate;
+//
+//			while (true) {
+//
+//				locationToPropogate = findWork(startFrom);
+//				if (locationToPropogate == -1) {
+//					LOG.info("bi bi");
+//					return;
+//				} else {
+//					startFrom = ((locationToPropogate + 1) % numberOfThreads_);
+//				}
+//				
+////				LOG.info("propgating");
+//				propogate(locationToPropogate);
+//
+//			}
+//
+//		}
+//
+//		int findWork(int startFrom) {
+//
+//			int i = 0;
+//			int index = startFrom;
+//
+//			while (true) {
+//				
+//				
+//
+//				if (i == 10000000) { // fence only when you really think the test is over.
+//					if (!run_) {
+//						return -1;
+//					} else {
+//						i = 0;
+//					}
+//				}
+//
+//				if (BaseBufferPatterns_[index].get()) {
+//					return index;
+//				} else {
+//					index = (index + 1) % (2 * numberOfThreads_);
+//					i++;
+//					debug_++;
+//					// TODO if index == startFrom then sleep for a while.
+//				}
+//			}
+//		}
+//
+//		void propogate(int locationToPropogate) {
+//
+//			//
+//			long bitPattern = getBitPattern();
+//			int startingLevel = 0;
+//
+//			long newN = getN() + (2 * k_);
+//
+//			// make sure there will be enough space (levels) for the propagation
+//			final int spaceNeeded = DoublesUpdateImpl.getRequiredItemCapacity(k_, newN);
+//			final int combBufItemCap = getCombinedBufferItemCapacity();
+//
+//			if (spaceNeeded > combBufItemCap) {
+//				// copies base buffer plus old levels, adds space for new level
+//				growCombinedBuffer(combBufItemCap, spaceNeeded);
+//			}
+//
+//			
+//			DoublesSketchAccessor tgtSketchBuf = DoublesSketchAccessor.wrap(MWMRHeapUpdateDoublesSketch.this, true);
+//			final int endingLevel = Util.lowestZeroBitStartingAt(bitPattern, startingLevel);
+//			tgtSketchBuf.setLevel(endingLevel);
+//
+//			if (endingLevel == 0) {
+//				tgtSketchBuf.putArray(BaseBuffers_, locationToPropogate * 2 * k_, 0, k_);
+//				BaseBufferPatterns_[locationToPropogate].set(false);
+//
+//			} else {
+//				DoublesSketchAccessor bbAccessor = DoublesSketchAccessor.wrap(MWMRHeapUpdateDoublesSketch.this, true);
+//				FlexDoublesArrayAccessor basesAccesor = FlexDoublesArrayAccessor.wrap(BaseBuffers_,
+//						locationToPropogate * 2 * k_, k_);
+//				DoublesSketchAccessor firstLevelBuf = tgtSketchBuf.copyAndSetLevel(0);
+//				DoublesUpdateImpl.mergeTwoSizeKBuffers(firstLevelBuf, // target level: lvl
+//						basesAccesor, // target level: endingLevel
+//						bbAccessor);
+//				BaseBufferPatterns_[locationToPropogate].set(false);
+//				DoublesUpdateImpl.zipSize2KBuffer(bbAccessor, tgtSketchBuf);
+//
+//				for (int lvl = 1; lvl < endingLevel; lvl++) {
+//					assert (bitPattern & (1L << lvl)) > 0; // internal consistency check
+//					final DoublesSketchAccessor currLevelBuf = tgtSketchBuf.copyAndSetLevel(lvl);
+//					DoublesUpdateImpl.mergeTwoSizeKBuffers(currLevelBuf, // target level: lvl
+//							tgtSketchBuf, // target level: endingLevel
+//							bbAccessor);
+//					DoublesUpdateImpl.zipSize2KBuffer(bbAccessor, tgtSketchBuf);
+//				} // end of loop over lower levels
+//			}
+//
+//			
+//			long newBitPattern = bitPattern + (1L << startingLevel);
+//			assert newBitPattern == computeBitPattern(k_, newN); // internal consistency check
+//
+//			putBitPattern(newBitPattern);
+//			putN(newN);
+//
+//		}
+//
+//		public void setRun_(boolean run_) {
+//			this.run_ = run_;
+//		}
+//
+//	}
 
 }
