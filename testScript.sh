@@ -6,9 +6,9 @@
                 do
                                 for i in {1..5}; do
 					if ((i == 1)); then		
-                                        	java  com.yahoo.sketches.quantiles.TestPerformance $writers 30 true
+                                        	 numactl -N 0 -m 0 java  com.yahoo.sketches.quantiles.TestPerformance $writers 30 true
 					else
-						java  com.yahoo.sketches.quantiles.TestPerformance $writers 30 false
+						 numactl -N 0 -m 0 java  com.yahoo.sketches.quantiles.TestPerformance $writers 30 false
                                		fi	
 				 done
 
