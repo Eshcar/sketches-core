@@ -59,12 +59,9 @@ public class TestPerformance {
 		// test.LOG.info("catched RuntimeException: " + e);
 		// }
 
-//		int levels = Integer.parseInt(args[0]);
-//		int helpers = Integer.parseInt(args[1]);
 		int writers = Integer.parseInt(args[0]);
 		int time = Integer.parseInt(args[1]);
 		boolean print = Boolean.parseBoolean(args[2]);
-//		int updateRetio = Integer.parseInt(args[4]);
 		int updateRetio = 50;
 		
 		
@@ -73,8 +70,11 @@ public class TestPerformance {
 		}
 
 		test.setUp("MWMR_BASIC", writers);
+		
+		//TODO set debug to zero!
+		
 		test.runTest(writers, 0, 0, time, updateRetio);
-		test.prtintDebug();
+		test.prtintDebug(time);
 		test.clean();
 
 		test.LOG.info("Done!");
@@ -83,8 +83,8 @@ public class TestPerformance {
 
 	}
 	
-	void prtintDebug() {
-		LOG.info("debug = " + ds_.getDebug_());
+	void prtintDebug(int time) {
+		LOG.info("debug = " + (ds_.getDebug_() / (time * 1000000 )) + " millions per second");
 	}
 
 	public void clean() {
