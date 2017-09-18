@@ -34,7 +34,7 @@ public class TestPerformance {
 		try {
 
 			// This block configure the logger with handler and formatter
-			test.fh = new FileHandler("/Users/sashaspiegelman/sketches/sketches-core/testlog", true);
+			test.fh = new FileHandler("/home/sashas/sketches/sketches-core/testlog", true);
 			test.logger.addHandler(test.fh);
 			SimpleFormatter formatter = new SimpleFormatter();
 			test.fh.setFormatter(formatter);
