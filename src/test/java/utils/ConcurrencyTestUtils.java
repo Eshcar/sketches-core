@@ -10,10 +10,18 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import com.yahoo.sketches.quantiles.HeapUpdateDoublesSketch;
+import com.yahoo.sketches.quantiles.LockBasedHeapUpdateDoublesSketch;
+import com.yahoo.sketches.quantiles.MWMRHeapUpdateDoublesSketch;
+//import com.yahoo.sketches.quantiles.SWSRHeapUpdateDoublesSketch;
+//import com.yahoo.sketches.quantiles.TestPerformance.SketchType;
 
 public class ConcurrencyTestUtils {
 
 	private static final Log LOG = LogFactory.getLog(ConcurrencyTestUtils.class);
+	
+	enum ThreadType {
+		MIXED, WRITER, READER 
+	}
 
 	// public static class MyResult {
 	//
@@ -78,6 +86,7 @@ public class ConcurrencyTestUtils {
 			for (TestThread t : testThreads_) {
 				t.stopThread();
 			}
+			
 
 			for (TestThread t : testThreads_) {
 				t.join();
@@ -126,6 +135,7 @@ public class ConcurrencyTestUtils {
 		private AtomicBoolean start_ = new AtomicBoolean(false);
 		private boolean affinity_ = false;
 		public HeapUpdateDoublesSketch ds_;
+		ThreadType type_;
 		
 //		private AtomicInteger test = new AtomicInteger(0);
 
@@ -138,22 +148,38 @@ public class ConcurrencyTestUtils {
 		}
 
 		// public TestThread(TestContext ctx) {
-		public TestThread(HeapUpdateDoublesSketch ds) {
+		public TestThread(HeapUpdateDoublesSketch ds, String type) {
 			ds_ = ds;
+			type_ = ThreadType.valueOf(type);
 //			this.ctx_ = ctx;
 		}
 
 		public void run() {
 			
 //			test.incrementAndGet();
+			int num = 1;
 			
+			switch (type_) {
+			case WRITER:
+				num = 10000000;
+				break;
+			case READER:
+				num = 1000;
+				break;
+			case MIXED:
+				num = 100000;
+				break;
+			default:
+				assert (false);
+				break;
+			}
 
 			 while (!start_.get()) {}
 
 			try {
 				while (!stop_.get()) {  //TODO can impact performance!
 					
-					for (int i = 0; i < 10000000; i++) {
+					for (int i = 0; i < num; i++) {
 						doWork();
 					}
 				}

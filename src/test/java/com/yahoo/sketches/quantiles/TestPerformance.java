@@ -16,7 +16,7 @@ import utils.ConcurrencyTestUtils.TestContext;
 import utils.ConcurrencyTestUtils.TestThread;
 
 import com.yahoo.sketches.quantiles.HeapUpdateDoublesSketch;
-import com.yahoo.sketches.quantiles.ConccurencyFramworkTest.SketchType;
+//import com.yahoo.sketches.quantiles.ConccurencyFramworkTest.SketchType;
 
 public class TestPerformance {
 
@@ -26,6 +26,13 @@ public class TestPerformance {
 	public final Log LOG = LogFactory.getLog(TestPerformance.class);
 	public Logger logger = Logger.getLogger("MyLog");
 	public FileHandler fh;
+	
+	
+	enum SketchType {
+		// ORIGINAL, SWWR_BASIC, GLOBAL_LOCK, MWMR
+		ORIGINAL, SWMR_BASIC, LOCK_BASE_OIGENAL, MWMR_BASIC
+	}
+
 
 	public static void main(String[] args) throws Exception {
 
@@ -70,11 +77,11 @@ public class TestPerformance {
 			test.logger.info("writers = " + writers + ", levels = " + numberOfLevels);
 		}
 
-		test.setUp("MWMR_BASIC", writers, numberOfLevels);
+		test.setUp("LOCK_BASE_OIGENAL", writers, numberOfLevels);
 		
 		//TODO set debug to zero!
 		
-		test.runTest(writers, 0, 0, time, updateRetio);
+		test.runTest(writers, 1, 0, time, updateRetio);
 		test.prtintDebug(time);
 		test.clean();
 
@@ -151,6 +158,8 @@ public class TestPerformance {
 			ctx.addThread(writer);
 		}
 
+		
+		
 		List<ReaderThread> readersList = Lists.newArrayList();
 		for (int i = 0; i < readersNum; i++) {
 			ReaderThread reader = new ReaderThread(ds_);
@@ -164,11 +173,13 @@ public class TestPerformance {
 			mixedList.add(mixed);
 			ctx.addThread(mixed);
 		}
+		
 
 		ctx.startThreads();
 		ctx.waitFor(secondsToRun * 1000);
 		ctx.stop();
 
+		
 		long totalReads = 0;
 		long totalWrites = 0;
 
@@ -211,7 +222,7 @@ public class TestPerformance {
 
 		// public WriterThread(TestContext ctx, HeapUpdateDoublesSketch ds) {
 		public WriterThread(HeapUpdateDoublesSketch ds) {
-			super(ds);
+			super(ds, "WRITER");
 			// ds_ = ds;
 		}
 
@@ -238,9 +249,10 @@ public class TestPerformance {
 		// Random rand_ = new Random();
 		// HeapUpdateDoublesSketch ds_;
 		long readOperationsNum_ = 0;
+		public final Log LOG = LogFactory.getLog(ReaderThread.class);
 
 		public ReaderThread(HeapUpdateDoublesSketch ds) {
-			super(ds);
+			super(ds, "READER");
 			// ds_ = ds;
 
 		}
@@ -270,6 +282,9 @@ public class TestPerformance {
 			// }
 			////
 
+			
+			
+			
 			ds_.getQuantile(0.5);
 			readOperationsNum_++;
 		}
@@ -291,7 +306,7 @@ public class TestPerformance {
 		int i_ = 1;
 
 		public MixedThread(HeapUpdateDoublesSketch ds, int updateRetio) {
-			super(ds);
+			super(ds, "MIXED");
 			// ds_ = ds;
 			updateRetio_ = updateRetio;
 		}
