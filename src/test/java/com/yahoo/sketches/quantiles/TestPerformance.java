@@ -60,16 +60,17 @@ public class TestPerformance {
 		// }
 
 		int writers = Integer.parseInt(args[0]);
-		int time = Integer.parseInt(args[1]);
-		boolean print = Boolean.parseBoolean(args[2]);
+		int numberOfLevels = Integer.parseInt(args[1]);
+		int time = Integer.parseInt(args[2]);
+		boolean print = Boolean.parseBoolean(args[3]);
 		int updateRetio = 50;
 		
 		
 		if (print) {
-			test.logger.info("writers = " + writers);
+			test.logger.info("writers = " + writers + ", levels = " + numberOfLevels);
 		}
 
-		test.setUp("MWMR_BASIC", writers);
+		test.setUp("MWMR_BASIC", writers, numberOfLevels);
 		
 		//TODO set debug to zero!
 		
@@ -91,7 +92,7 @@ public class TestPerformance {
 		ds_.clean();
 	}
 
-	public void setUp(String t, int numberOfWriters) throws Exception {
+	public void setUp(String t, int numberOfWriters, int numberOfLevels) throws Exception {
 
 		SketchType type_ = SketchType.valueOf(t);
 
@@ -112,7 +113,7 @@ public class TestPerformance {
 					"=============================================LOCK_BASE_OIGENAL====================================");
 			break;
 		case MWMR_BASIC:
-			ds_ = MWMRHeapUpdateDoublesSketch.newInstance(k_, numberOfWriters);
+			ds_ = MWMRHeapUpdateDoublesSketch.newInstance(k_, numberOfWriters, numberOfLevels);
 			LOG.info(
 					"=============================================MWMR_BASIC===========================================");
 			break;
