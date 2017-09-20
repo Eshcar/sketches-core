@@ -77,11 +77,11 @@ public class TestPerformance {
 			test.logger.info("writers = " + writers + ", levels = " + numberOfLevels);
 		}
 
-		test.setUp("LOCK_BASE_OIGENAL", writers, numberOfLevels);
+		test.setUp("MWMR_BASIC", writers, numberOfLevels);
 		
 		//TODO set debug to zero!
 		
-		test.runTest(writers, 1, 0, time, updateRetio);
+		test.runTest(writers, 0, 0, time, updateRetio);
 		test.prtintDebug(time);
 		test.clean();
 
@@ -153,7 +153,7 @@ public class TestPerformance {
 
 		List<WriterThread> writersList = Lists.newArrayList();
 		for (int i = 0; i < writersNum; i++) {
-			WriterThread writer = new WriterThread(ds_);
+			WriterThread writer = new WriterThread(ds_, i);
 			writersList.add(writer);
 			ctx.addThread(writer);
 		}
@@ -219,12 +219,15 @@ public class TestPerformance {
 		long operationsNum_ = 0;
 		// OperationsNum ops_;
 		public final Log LOG = LogFactory.getLog(WriterThread.class);
+		private int myId_;
 
 		// public WriterThread(TestContext ctx, HeapUpdateDoublesSketch ds) {
-		public WriterThread(HeapUpdateDoublesSketch ds) {
+		public WriterThread(HeapUpdateDoublesSketch ds, int id) {
 			super(ds, "WRITER");
+			myId_ = id;
 			// ds_ = ds;
 		}
+
 
 		@Override
 		public void doWork() throws Exception {
@@ -237,7 +240,8 @@ public class TestPerformance {
 			// LOG.info( "I am a writer and my core is " + ThreadAffinity.currentCore());
 			// }
 
-			ds_.update(operationsNum_);
+			
+			ds_.update(operationsNum_, myId_);
 			operationsNum_++;
 			// assert(operationsNum_ > 0);
 		}

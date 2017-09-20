@@ -44,13 +44,15 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 	 */
 
 	private final ThreadLocal<ThreadReadContext> threadReadLocal_ = new ThreadLocal<ThreadReadContext>();
-	private final ThreadLocal<ThreadWriteContext> threadWriteLocal_ = new ThreadLocal<ThreadWriteContext>();
+//	private final ThreadLocal<ThreadWriteContext> threadWriteLocal_ = new ThreadLocal<ThreadWriteContext>();
 	private AtomicLong atomicBitPattern_ = new AtomicLong();
 //	private int numberOfWriters_;
 	private double[] SharedKBuffers_;
 	private AtomicBoolean[] SharedKBuffersPattern_;
 	private int levelsNum_;
-	private int maxCount_;
+	private long maxCount_;
+	private int numberOfWriters_;
+	private HeapUpdateDoublesSketch[] LocalSketchArrays_;
 	
 	private long debug_ = 0;
 
@@ -80,12 +82,16 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 //		hqs.numberOfWriters_ = numberOfWriters;
 		
 		hqs.levelsNum_ = numberOfLevels;
-		hqs.maxCount_ = (int) Math.pow(2, numberOfLevels) * (2 * k);  
+		hqs.maxCount_ = (int) Math.pow(2, numberOfLevels) * (2 * k); 
+		hqs.numberOfWriters_ = numberOfWriters;
 
 		hqs.SharedKBuffers_ = new double[numberOfWriters * k];
 		hqs.SharedKBuffersPattern_ = new AtomicBoolean[numberOfWriters];
+		hqs.LocalSketchArrays_ = new HeapUpdateDoublesSketch[numberOfWriters];
 		for (int i = 0; i < numberOfWriters; i++) {
 			hqs.SharedKBuffersPattern_[i] = new AtomicBoolean(false);
+			hqs.LocalSketchArrays_[i] = HeapUpdateDoublesSketch.newInstance(k);
+			hqs.LocalSketchArrays_[i].putCombinedBuffer(new double[(2 * k) + (numberOfLevels + 1) * k]);
 		}
 
 		hqs.executorService_ = Executors.newSingleThreadExecutor();
@@ -106,7 +112,7 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 
 
 	@Override
-	public void update(final double dataItem) {
+	public void update(final double dataItem, int MyId) {
 		if (Double.isNaN(dataItem)) {
 			return;
 		}
@@ -121,20 +127,20 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 		// }
 		// Do we need a fence here?
 
-		ThreadWriteContext threadWriteContext = threadWriteLocal_.get();
-		if (threadWriteContext == null) {
-			threadWriteContext = new ThreadWriteContext();
-
-			threadWriteContext.sketchCount_ = 0;
-			threadWriteContext.id_ = WritersID.getAndIncrement();
-			threadWriteContext.localSketch_ = HeapUpdateDoublesSketch.newInstance(k_);
-			threadWriteContext.localSketch_.putCombinedBuffer(new double[(2 * k_) + (levelsNum_ + 1) * k_]);
-
-			if (threadWriteContext.id_ > 0) { // In case you have a warm up!
-				threadWriteContext.id_--;
-			}
-			threadWriteLocal_.set(threadWriteContext);
-		}
+//		ThreadWriteContext threadWriteContext = threadWriteLocal_.get();
+//		if (threadWriteContext == null) {
+//			threadWriteContext = new ThreadWriteContext();
+//
+//			threadWriteContext.sketchCount_ = 0;
+//			threadWriteContext.id_ = WritersID.getAndIncrement();
+//			threadWriteContext.localSketch_ = HeapUpdateDoublesSketch.newInstance(k_);
+//			threadWriteContext.localSketch_.putCombinedBuffer(new double[(2 * k_) + (levelsNum_ + 1) * k_]);
+//
+//			if (threadWriteContext.id_ > 0) { // In case you have a warm up!
+//				threadWriteContext.id_--;
+//			}
+//			threadWriteLocal_.set(threadWriteContext);
+//		}
 
 		// if (threadWriteContext.id_ != 1) {
 		// try {
@@ -160,75 +166,46 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 		// }
 
 		
-		threadWriteContext.sketchCount_++;
+//		int MyId = (int) (Thread.currentThread().getId() % (long)numberOfWriters_);
+//		int MyId =  (id % numberOfWriters_);
+//		MyId =  0;
+		//TODO: check that every writer gets unique id.
+		HeapUpdateDoublesSketch localSketch = LocalSketchArrays_[MyId];
 		
-		if (threadWriteContext.sketchCount_ == maxCount_) {
-			prapereJobAndInvokePropogator(threadWriteContext, dataItem); //TODO synchronization is here.
-			threadWriteContext.sketchCount_ = 0;
+		
+		if (localSketch.getN() + 1 ==  maxCount_) {
+			prapereJobAndInvokePropogator(MyId, localSketch , dataItem);
+//			assert(localSketch.getN() == 0);
 		}else {
-			threadWriteContext.localSketch_.update(dataItem);
+			localSketch.update(dataItem);
 		}
+//		
 		
-
-//		if (threadWriteContext.index_ == 0) {
-//			while (BaseBufferPatterns_[myLocation].get()) {
-//			} // TODO: possible bottleneck
-//		}
-//
-//		if (threadWriteContext.index_ == (2 * k_)) {
-//			while (BaseBufferPatterns_[myLocation + 1].get()) {
-////				LOG.info("bode miller!");
-//			} // TODO: possible bottleneck
-//		}
-//
-//		int index = (2 * k_ * myLocation) + threadWriteContext.index_;
-//		BaseBuffers_[index] = dataItem;
-//		threadWriteContext.index_++;
-//
-//		if (threadWriteContext.index_ == (2 * k_)) {
-//			Arrays.sort(BaseBuffers_, (2 * k_ * myLocation), (2 * k_ * (myLocation + 1)));
-//			int startIndex = 2 * k_ * myLocation;
-//			FlexDoublesArrayAccessor bufIn = FlexDoublesArrayAccessor.wrap(BaseBuffers_, startIndex, 2 * k_);
-//			FlexDoublesArrayAccessor bufOut = FlexDoublesArrayAccessor.wrap(BaseBuffers_, startIndex, k_);
-//			DoublesUpdateImpl.zipSize2KBuffer(bufIn, bufOut);
-//			BaseBufferPatterns_[myLocation].set(true);  
-//			
-//			BackgroundPropogation job = new BackgroundPropogation(myLocation);
-//			executorService_.execute(job);
-//			
-//		}
-//
-//		if (threadWriteContext.index_ == (2 * 2 * k_)) {
-//			Arrays.sort(BaseBuffers_, (2 * k_ * (myLocation + 1)), (2 * k_ * (myLocation + 2)));
-//			int startIndex = 2 * k_ * (myLocation + 1);
-//			FlexDoublesArrayAccessor bufIn = FlexDoublesArrayAccessor.wrap(BaseBuffers_, startIndex, 2 * k_);
-//			FlexDoublesArrayAccessor bufOut = FlexDoublesArrayAccessor.wrap(BaseBuffers_, startIndex, k_);
-//			DoublesUpdateImpl.zipSize2KBuffer(bufIn, bufOut);
-//
-//			BaseBufferPatterns_[myLocation + 1].set(true);  
-//			
-//			BackgroundPropogation job = new BackgroundPropogation(myLocation + 1);
-//			executorService_.execute(job);
-//			
-//			
-//			threadWriteContext.index_ = 0;
+		
+//		threadWriteContext.sketchCount_++;
+//		
+//		if (threadWriteContext.sketchCount_ == maxCount_) {
+//			prapereJobAndInvokePropogator(threadWriteContext, dataItem); //TODO synchronization is here.
+//			threadWriteContext.sketchCount_ = 0;
+//		}else {
+//			threadWriteContext.localSketch_.update(dataItem);
 //		}
 
 	}
 	
-	private void prapereJobAndInvokePropogator(ThreadWriteContext threadWriteContext, double dataItem) {
+	private void prapereJobAndInvokePropogator(int id, HeapUpdateDoublesSketch sketch, double dataItem) {
 		
-		int myLocation = (threadWriteContext.id_);
-		double[] buffer = threadWriteContext.localSketch_.getCombinedBuffer();
+		int myLocation = id;
+		double[] buffer = sketch.getCombinedBuffer();
 		
 		buffer[(2 * k_) - 1] = dataItem;
 		
 		//sort the base buffer
 		Arrays.sort(buffer, 0, 2 * k_);
 		
-		DoublesSketchAccessor bbAccessor = DoublesSketchAccessor.wrap(threadWriteContext.localSketch_, true);
+		DoublesSketchAccessor bbAccessor = DoublesSketchAccessor.wrap(sketch, true);
 		
-		DoublesSketchAccessor tgtSketchBuf = DoublesSketchAccessor.wrap(threadWriteContext.localSketch_, true);
+		DoublesSketchAccessor tgtSketchBuf = DoublesSketchAccessor.wrap(sketch, true);
 //		final int endingLevel = Util.lowestZeroBitStartingAt(bitPattern, startingLevel);
 		tgtSketchBuf.setLevel(levelsNum_);
 		
@@ -262,9 +239,9 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 		//empty sketch
 		
 		
-		threadWriteContext.localSketch_.putBitPattern(0);
-		threadWriteContext.localSketch_.putN(0);
-		threadWriteContext.localSketch_.putBaseBufferCount(0);
+		sketch.putBitPattern(0);
+		sketch.putN(0);
+		sketch.putBaseBufferCount(0);
 		
 	}
 
@@ -346,7 +323,7 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 	public void resetLocal() {
 
 		threadReadLocal_.set(null);
-		threadWriteLocal_.set(null);
+//		threadWriteLocal_.set(null);
 
 		LOG.info("reset local");
 	}
