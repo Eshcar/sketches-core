@@ -157,7 +157,7 @@ public class HeapUpdateDoublesSketch extends UpdateDoublesSketch {
 	}
 	
 	public void update(final double dataItem, int MyId) {
-		
+		update(dataItem);
 	}
 
   @Override

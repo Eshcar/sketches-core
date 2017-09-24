@@ -16,6 +16,7 @@ import utils.ConcurrencyTestUtils.TestContext;
 import utils.ConcurrencyTestUtils.TestThread;
 
 import com.yahoo.sketches.quantiles.HeapUpdateDoublesSketch;
+import com.yahoo.sketches.theta.Sketches;
 //import com.yahoo.sketches.quantiles.ConccurencyFramworkTest.SketchType;
 
 public class TestPerformance {
@@ -77,13 +78,12 @@ public class TestPerformance {
 			test.logger.info("writers = " + writers + ", levels = " + numberOfLevels);
 		}
 
-		test.setUp("MWMR_BASIC", writers, numberOfLevels);
+//		test.setUp("MWMR_BASIC", writers, numberOfLevels);
+//		test.runTest(writers, 0, 0, time, updateRetio);
+//		test.prtintDebug(time);
+//		test.clean();
 		
-		//TODO set debug to zero!
-		
-		test.runTest(writers, 0, 0, time, updateRetio);
-		test.prtintDebug(time);
-		test.clean();
+		test.runPatitionTest(writers, time);
 
 		test.LOG.info("Done!");
 
@@ -141,6 +141,47 @@ public class TestPerformance {
 		}
 
 		LOG.info(ds_.getQuantile(0.5));
+
+	}
+	
+	private void runPatitionTest(int writersNum, long secondsToRun)
+			throws Exception {
+
+		TestContext ctx = new TestContext();
+		HeapUpdateDoublesSketch[] sketches = new HeapUpdateDoublesSketch[writersNum];
+		
+		// OperationsNum ops = new OperationsNum();
+
+		List<WriterThread> writersList = Lists.newArrayList();
+		for (int i = 0; i < writersNum; i++) {
+			sketches[i] = HeapUpdateDoublesSketch.newInstance(k_);
+			WriterThread writer = new WriterThread(sketches[i],0);
+			writersList.add(writer);
+			ctx.addThread(writer);
+		}
+
+
+
+		ctx.startThreads();
+		ctx.waitFor(secondsToRun * 1000);
+		ctx.stop();
+
+		
+		long totalReads = 0;
+		long totalWrites = 0;
+
+
+		// LOG.info("Write threads:");
+		for (WriterThread writer : writersList) {
+			totalWrites += writer.operationsNum_;
+		}
+		LOG.info("writeTput = " + ((totalWrites / secondsToRun)) / 1000000 + " millions per second");
+		logger.info("writeTput = " + ((totalWrites / secondsToRun)) / 1000000 + " millions per second");
+
+		
+		for (int i = 0; i < writersNum; i++) {
+			LOG.info(sketches[i].getQuantile(0.5));
+		}
 
 	}
 
