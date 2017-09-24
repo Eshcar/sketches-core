@@ -172,14 +172,13 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 		//TODO: check that every writer gets unique id.
 		HeapUpdateDoublesSketch localSketch = LocalSketchArrays_[MyId];
 		
+		localSketch.update(dataItem);
 		
-		if (localSketch.getN() + 1 ==  maxCount_) {
-			prapereJobAndInvokePropogator(MyId, localSketch , dataItem);
-//			assert(localSketch.getN() == 0);
-		}else {
-			localSketch.update(dataItem);
-		}
-//		
+//		if (localSketch.getN() + 1 ==  maxCount_) {
+//			prapereJobAndInvokePropogator(MyId, localSketch , dataItem);
+//		}else {
+//			localSketch.update(dataItem);
+//		}
 		
 		
 //		threadWriteContext.sketchCount_++;
