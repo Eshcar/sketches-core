@@ -28,6 +28,8 @@ public class TestPerformance {
 	public Logger logger = Logger.getLogger("MyLog");
 	public FileHandler fh;
 	
+	HeapUpdateDoublesSketch[] sketches_;
+	
 	
 	enum SketchType {
 		// ORIGINAL, SWWR_BASIC, GLOBAL_LOCK, MWMR
@@ -148,14 +150,15 @@ public class TestPerformance {
 			throws Exception {
 
 		TestContext ctx = new TestContext();
-		HeapUpdateDoublesSketch[] sketches = new HeapUpdateDoublesSketch[writersNum];
+		sketches_ = new HeapUpdateDoublesSketch[writersNum];
 		
 		// OperationsNum ops = new OperationsNum();
+		
 
 		List<WriterThread> writersList = Lists.newArrayList();
 		for (int i = 0; i < writersNum; i++) {
-			sketches[i] = HeapUpdateDoublesSketch.newInstance(k_);
-			WriterThread writer = new WriterThread(sketches[i],0);
+			sketches_[i] = HeapUpdateDoublesSketch.newInstance(k_);
+			WriterThread writer = new WriterThread(sketches_[i],i);
 			writersList.add(writer);
 			ctx.addThread(writer);
 		}
@@ -167,7 +170,6 @@ public class TestPerformance {
 		ctx.stop();
 
 		
-		long totalReads = 0;
 		long totalWrites = 0;
 
 
@@ -180,7 +182,7 @@ public class TestPerformance {
 
 		
 		for (int i = 0; i < writersNum; i++) {
-			LOG.info(sketches[i].getQuantile(0.5));
+			LOG.info(sketches_[i].getQuantile(0.5));
 		}
 
 	}
@@ -254,7 +256,8 @@ public class TestPerformance {
 
 	}
 
-	public static class WriterThread extends TestThread {
+//	public static class WriterThread extends TestThread {
+	public class WriterThread extends TestThread {
 		// Random rand_ = new Random();
 		// HeapUpdateDoublesSketch ds_;
 		long operationsNum_ = 0;
@@ -281,6 +284,8 @@ public class TestPerformance {
 			// LOG.info( "I am a writer and my core is " + ThreadAffinity.currentCore());
 			// }
 
+			
+			sketches_[myId_].update(operationsNum_, myId_);
 			
 			ds_.update(operationsNum_, myId_);
 			operationsNum_++;
