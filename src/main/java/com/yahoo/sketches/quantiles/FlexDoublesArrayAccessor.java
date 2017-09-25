@@ -13,6 +13,10 @@ public class FlexDoublesArrayAccessor extends DoublesBufferAccessor {
 		startIndex_ = startIndex;
 		numItems_ = numItems;
 	}
+	
+	public double[] getBuffer(){
+		return buffer_;
+	}
 
 	static FlexDoublesArrayAccessor wrap(final double[] buffer, int startIndex, int numItems) {
 		return new FlexDoublesArrayAccessor(buffer, startIndex, numItems);

@@ -16,19 +16,20 @@ import utils.ConcurrencyTestUtils.TestContext;
 import utils.ConcurrencyTestUtils.TestThread;
 
 import com.yahoo.sketches.quantiles.HeapUpdateDoublesSketch;
+import com.yahoo.sketches.quantiles.Contex;
 import com.yahoo.sketches.theta.Sketches;
 //import com.yahoo.sketches.quantiles.ConccurencyFramworkTest.SketchType;
 
 public class TestPerformance {
 
-	private HeapUpdateDoublesSketch ds_;
+	private MWMRHeapUpdateDoublesSketch ds_;
 	// private static final SketchType type_ = ;
 	private final int k_ = 4096;
 	public final Log LOG = LogFactory.getLog(TestPerformance.class);
 	public Logger logger = Logger.getLogger("MyLog");
 	public FileHandler fh;
 	
-	HeapUpdateDoublesSketch[] sketches_;
+//	HeapUpdateDoublesSketch[] sketches_;
 	
 	
 	enum SketchType {
@@ -80,12 +81,12 @@ public class TestPerformance {
 			test.logger.info("writers = " + writers + ", levels = " + numberOfLevels);
 		}
 
-//		test.setUp("MWMR_BASIC", writers, numberOfLevels);
-//		test.runTest(writers, 0, 0, time, updateRetio);
-//		test.prtintDebug(time);
-//		test.clean();
+		test.setUp(numberOfLevels);
+		test.runTest(writers, 0, 0, time, updateRetio);
+		test.prtintDebug(time);
+		test.clean();
 		
-		test.runPatitionTest(writers, time);
+//		test.runPatitionTest(writers, time);
 
 		test.LOG.info("Done!");
 
@@ -101,44 +102,17 @@ public class TestPerformance {
 		ds_.clean();
 	}
 
-	public void setUp(String t, int numberOfWriters, int numberOfLevels) throws Exception {
+	public void setUp(int numberOfLevels) throws Exception {
 
-		SketchType type_ = SketchType.valueOf(t);
 
-		switch (type_) {
-		case ORIGINAL:
-			ds_ = HeapUpdateDoublesSketch.newInstance(k_);
-			LOG.info(
-					"=============================================ORIGINAL=============================================");
-			break;
-		case SWMR_BASIC:
-			ds_ = SWSRHeapUpdateDoublesSketch.newInstance(k_);
-			LOG.info(
-					"=============================================SWMR_BASIC===========================================");
-			break;
-		case LOCK_BASE_OIGENAL:
-			ds_ = new LockBasedHeapUpdateDoublesSketch(k_);
-			LOG.info(
-					"=============================================LOCK_BASE_OIGENAL====================================");
-			break;
-		case MWMR_BASIC:
-			ds_ = MWMRHeapUpdateDoublesSketch.newInstance(k_, numberOfWriters, numberOfLevels);
+			ds_ = MWMRHeapUpdateDoublesSketch.newInstance(k_, numberOfLevels);
 			LOG.info(
 					"=============================================MWMR_BASIC===========================================");
-			break;
-		default:
-			assert (false);
-			break;
-		}
 
-		// ds_ = MWMRHeapUpdateDoublesSketch.newInstance(k_, numberOfThreads,
-		// numberOfTreeLevels, numberOfWriters);
 
 		LOG.info(ds_.getQuantile(0.5));
 		
-		// must warm up!!!
 		for (double i = 1; i < 10000000; i++) {
-//			LOG.info("hi = " + i);
 			ds_.update(i);
 		}
 
@@ -146,46 +120,46 @@ public class TestPerformance {
 
 	}
 	
-	private void runPatitionTest(int writersNum, long secondsToRun)
-			throws Exception {
-
-		TestContext ctx = new TestContext();
-		sketches_ = new HeapUpdateDoublesSketch[writersNum];
-		
-		// OperationsNum ops = new OperationsNum();
-		
-
-		List<WriterThread> writersList = Lists.newArrayList();
-		for (int i = 0; i < writersNum; i++) {
-			sketches_[i] = HeapUpdateDoublesSketch.newInstance(k_);
-			WriterThread writer = new WriterThread(sketches_[i],i);
-			writersList.add(writer);
-			ctx.addThread(writer);
-		}
-
-
-
-		ctx.startThreads();
-		ctx.waitFor(secondsToRun * 1000);
-		ctx.stop();
-
-		
-		long totalWrites = 0;
-
-
-		// LOG.info("Write threads:");
-		for (WriterThread writer : writersList) {
-			totalWrites += writer.operationsNum_;
-		}
-		LOG.info("writeTput = " + ((totalWrites / secondsToRun)) / 1000000 + " millions per second");
-		logger.info("writeTput = " + ((totalWrites / secondsToRun)) / 1000000 + " millions per second");
-
-		
-		for (int i = 0; i < writersNum; i++) {
-			LOG.info(sketches_[i].getQuantile(0.5));
-		}
-
-	}
+//	private void runPatitionTest(int writersNum, long secondsToRun)
+//			throws Exception {
+//
+//		TestContext ctx = new TestContext();
+//		sketches_ = new HeapUpdateDoublesSketch[writersNum];
+//		
+//		// OperationsNum ops = new OperationsNum();
+//		
+//
+//		List<WriterThread> writersList = Lists.newArrayList();
+//		for (int i = 0; i < writersNum; i++) {
+//			sketches_[i] = HeapUpdateDoublesSketch.newInstance(k_);
+//			WriterThread writer = new WriterThread(sketches_[i],i);
+//			writersList.add(writer);
+//			ctx.addThread(writer);
+//		}
+//
+//
+//
+//		ctx.startThreads();
+//		ctx.waitFor(secondsToRun * 1000);
+//		ctx.stop();
+//
+//		
+//		long totalWrites = 0;
+//
+//
+//		// LOG.info("Write threads:");
+//		for (WriterThread writer : writersList) {
+//			totalWrites += writer.operationsNum_;
+//		}
+//		LOG.info("writeTput = " + ((totalWrites / secondsToRun)) / 1000000 + " millions per second");
+//		logger.info("writeTput = " + ((totalWrites / secondsToRun)) / 1000000 + " millions per second");
+//
+//		
+//		for (int i = 0; i < writersNum; i++) {
+//			LOG.info(sketches_[i].getQuantile(0.5));
+//		}
+//
+//	}
 
 	private void runTest(int writersNum, int readersNum, int mixedNum, long secondsToRun, int updateRetio)
 			throws Exception {
@@ -196,7 +170,7 @@ public class TestPerformance {
 
 		List<WriterThread> writersList = Lists.newArrayList();
 		for (int i = 0; i < writersNum; i++) {
-			WriterThread writer = new WriterThread(ds_, i);
+			WriterThread writer = new WriterThread(ds_);
 			writersList.add(writer);
 			ctx.addThread(writer);
 		}
@@ -256,20 +230,14 @@ public class TestPerformance {
 
 	}
 
-//	public static class WriterThread extends TestThread {
 	public class WriterThread extends TestThread {
-		// Random rand_ = new Random();
-		// HeapUpdateDoublesSketch ds_;
 		long operationsNum_ = 0;
-		// OperationsNum ops_;
 		public final Log LOG = LogFactory.getLog(WriterThread.class);
-		private int myId_;
+		private Contex contex_;
 
-		// public WriterThread(TestContext ctx, HeapUpdateDoublesSketch ds) {
-		public WriterThread(HeapUpdateDoublesSketch ds, int id) {
+		public WriterThread(MWMRHeapUpdateDoublesSketch ds) {
 			super(ds, "WRITER");
-			myId_ = id;
-			// ds_ = ds;
+			contex_ = new Contex(ds);
 		}
 
 
@@ -285,25 +253,19 @@ public class TestPerformance {
 			// }
 
 			
-			sketches_[myId_].update(operationsNum_, myId_);
-			
-			ds_.update(operationsNum_, myId_);
+			contex_.update(operationsNum_);
 			operationsNum_++;
-			// assert(operationsNum_ > 0);
 		}
 
 	}
 
 	public static class ReaderThread extends TestThread {
 
-		// Random rand_ = new Random();
-		// HeapUpdateDoublesSketch ds_;
 		long readOperationsNum_ = 0;
 		public final Log LOG = LogFactory.getLog(ReaderThread.class);
 
 		public ReaderThread(HeapUpdateDoublesSketch ds) {
 			super(ds, "READER");
-			// ds_ = ds;
 
 		}
 
@@ -318,23 +280,6 @@ public class TestPerformance {
 			// LOG.info( "I am a reader and my core is " + ThreadAffinity.currentCore());
 			// }
 
-			// double[] a = new double[1000];
-			//
-			// for (int i = 0; i < 1000 ; i++) {
-			// a[i] = i;
-			// }
-			//
-			// long endTime = System.currentTimeMillis() + 10;
-			// while (true) {
-			// long left = endTime - System.currentTimeMillis();
-			// if (left <= 0)
-			// break;
-			// }
-			////
-
-			
-			
-			
 			ds_.getQuantile(0.5);
 			readOperationsNum_++;
 		}
@@ -350,14 +295,12 @@ public class TestPerformance {
 
 		int readTopLatency_;
 
-		// HeapUpdateDoublesSketch ds_;
 		double writeOps_ = 0;
 		long readOps_ = 0;
 		int i_ = 1;
 
 		public MixedThread(HeapUpdateDoublesSketch ds, int updateRetio) {
 			super(ds, "MIXED");
-			// ds_ = ds;
 			updateRetio_ = updateRetio;
 		}
 
@@ -382,7 +325,6 @@ public class TestPerformance {
 			}
 			i_++;
 
-			// LOG.info("writeOps_:" + this.writeOps_);
 		}
 	}
 
