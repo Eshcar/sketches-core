@@ -28,15 +28,15 @@ public class TestPerformance {
 	public final Log LOG = LogFactory.getLog(TestPerformance.class);
 	public Logger logger = Logger.getLogger("MyLog");
 	public FileHandler fh;
-	
-//	HeapUpdateDoublesSketch[] sketches_;
-	
-	
+
+	private Contex contex_;
+
+	// HeapUpdateDoublesSketch[] sketches_;
+
 	enum SketchType {
 		// ORIGINAL, SWWR_BASIC, GLOBAL_LOCK, MWMR
 		ORIGINAL, SWMR_BASIC, LOCK_BASE_OIGENAL, MWMR_BASIC
 	}
-
 
 	public static void main(String[] args) throws Exception {
 
@@ -75,27 +75,26 @@ public class TestPerformance {
 		int time = Integer.parseInt(args[2]);
 		boolean print = Boolean.parseBoolean(args[3]);
 		int updateRetio = 50;
-		
-		
+
 		if (print) {
 			test.logger.info("writers = " + writers + ", levels = " + numberOfLevels);
 		}
 
 		test.setUp(numberOfLevels);
-		test.runTest(writers, 0, 0, time, updateRetio);
+		test.runTest(writers, 1, 0, time, updateRetio);
 		test.prtintDebug(time);
 		test.clean();
-		
-//		test.runPatitionTest(writers, time);
+
+		// test.runPatitionTest(writers, time);
 
 		test.LOG.info("Done!");
 
 		System.exit(0);
 
 	}
-	
+
 	void prtintDebug(int time) {
-		LOG.info("debug = " + (ds_.getDebug_() / (time * 1000000 )) + " millions per second");
+		LOG.info("debug = " + (ds_.getDebug_() / (time * 1000000)) + " millions per second");
 	}
 
 	public void clean() {
@@ -104,62 +103,63 @@ public class TestPerformance {
 
 	public void setUp(int numberOfLevels) throws Exception {
 
+		ds_ = MWMRHeapUpdateDoublesSketch.newInstance(k_, numberOfLevels);
+		LOG.info("=============================================MWMR_BASIC===========================================");
 
-			ds_ = MWMRHeapUpdateDoublesSketch.newInstance(k_, numberOfLevels);
-			LOG.info(
-					"=============================================MWMR_BASIC===========================================");
-
-
-		LOG.info(ds_.getQuantile(0.5));
 		
+		contex_ = new Contex(ds_);
+		LOG.info(contex_.getQuantile(0.5));
+
 		for (double i = 1; i < 10000000; i++) {
-			ds_.update(i);
+			contex_.update(i);
 		}
 
-		LOG.info(ds_.getQuantile(0.5));
+		LOG.info(contex_.getQuantile(0.5));
 
 	}
-	
-//	private void runPatitionTest(int writersNum, long secondsToRun)
-//			throws Exception {
-//
-//		TestContext ctx = new TestContext();
-//		sketches_ = new HeapUpdateDoublesSketch[writersNum];
-//		
-//		// OperationsNum ops = new OperationsNum();
-//		
-//
-//		List<WriterThread> writersList = Lists.newArrayList();
-//		for (int i = 0; i < writersNum; i++) {
-//			sketches_[i] = HeapUpdateDoublesSketch.newInstance(k_);
-//			WriterThread writer = new WriterThread(sketches_[i],i);
-//			writersList.add(writer);
-//			ctx.addThread(writer);
-//		}
-//
-//
-//
-//		ctx.startThreads();
-//		ctx.waitFor(secondsToRun * 1000);
-//		ctx.stop();
-//
-//		
-//		long totalWrites = 0;
-//
-//
-//		// LOG.info("Write threads:");
-//		for (WriterThread writer : writersList) {
-//			totalWrites += writer.operationsNum_;
-//		}
-//		LOG.info("writeTput = " + ((totalWrites / secondsToRun)) / 1000000 + " millions per second");
-//		logger.info("writeTput = " + ((totalWrites / secondsToRun)) / 1000000 + " millions per second");
-//
-//		
-//		for (int i = 0; i < writersNum; i++) {
-//			LOG.info(sketches_[i].getQuantile(0.5));
-//		}
-//
-//	}
+
+	// private void runPatitionTest(int writersNum, long secondsToRun)
+	// throws Exception {
+	//
+	// TestContext ctx = new TestContext();
+	// sketches_ = new HeapUpdateDoublesSketch[writersNum];
+	//
+	// // OperationsNum ops = new OperationsNum();
+	//
+	//
+	// List<WriterThread> writersList = Lists.newArrayList();
+	// for (int i = 0; i < writersNum; i++) {
+	// sketches_[i] = HeapUpdateDoublesSketch.newInstance(k_);
+	// WriterThread writer = new WriterThread(sketches_[i],i);
+	// writersList.add(writer);
+	// ctx.addThread(writer);
+	// }
+	//
+	//
+	//
+	// ctx.startThreads();
+	// ctx.waitFor(secondsToRun * 1000);
+	// ctx.stop();
+	//
+	//
+	// long totalWrites = 0;
+	//
+	//
+	// // LOG.info("Write threads:");
+	// for (WriterThread writer : writersList) {
+	// totalWrites += writer.operationsNum_;
+	// }
+	// LOG.info("writeTput = " + ((totalWrites / secondsToRun)) / 1000000 + "
+	// millions per second");
+	// logger.info("writeTput = " + ((totalWrites / secondsToRun)) / 1000000 + "
+	// millions per second");
+	//
+	//
+	// for (int i = 0; i < writersNum; i++) {
+	// LOG.info(sketches_[i].getQuantile(0.5));
+	// }
+	//
+	// }
 
 	private void runTest(int writersNum, int readersNum, int mixedNum, long secondsToRun, int updateRetio)
 			throws Exception {
@@ -175,8 +175,6 @@ public class TestPerformance {
 			ctx.addThread(writer);
 		}
 
-		
-		
 		List<ReaderThread> readersList = Lists.newArrayList();
 		for (int i = 0; i < readersNum; i++) {
 			ReaderThread reader = new ReaderThread(ds_);
@@ -190,13 +188,11 @@ public class TestPerformance {
 			mixedList.add(mixed);
 			ctx.addThread(mixed);
 		}
-		
 
 		ctx.startThreads();
 		ctx.waitFor(secondsToRun * 1000);
 		ctx.stop();
 
-		
 		long totalReads = 0;
 		long totalWrites = 0;
 
@@ -217,16 +213,17 @@ public class TestPerformance {
 		for (WriterThread writer : writersList) {
 			totalWrites += writer.operationsNum_;
 		}
-		LOG.info("writeTput = " + ((totalWrites / secondsToRun)) / 1000000 + " millions per second");
+		// LOG.info("writeTput = " + ((totalWrites / secondsToRun)) / 1000000 + "
+		// millions per second");
 		logger.info("writeTput = " + ((totalWrites / secondsToRun)) / 1000000 + " millions per second");
 
 		// LOG.info("Read threads:");
 		for (ReaderThread reader : readersList) {
 			totalReads += reader.readOperationsNum_;
 		}
-		LOG.info("readTput = " + ((totalReads / secondsToRun)) / 1000000.0 + " millions per second");
+		logger.info("readTput = " + ((totalReads / secondsToRun)) / 1000000.0 + " millions per second");
 
-		LOG.info(ds_.getQuantile(0.5));
+		LOG.info(contex_.getQuantile(0.5));
 
 	}
 
@@ -240,7 +237,6 @@ public class TestPerformance {
 			contex_ = new Contex(ds);
 		}
 
-
 		@Override
 		public void doWork() throws Exception {
 
@@ -252,7 +248,6 @@ public class TestPerformance {
 			// LOG.info( "I am a writer and my core is " + ThreadAffinity.currentCore());
 			// }
 
-			
 			contex_.update(operationsNum_);
 			operationsNum_++;
 		}
@@ -262,10 +257,12 @@ public class TestPerformance {
 	public static class ReaderThread extends TestThread {
 
 		long readOperationsNum_ = 0;
+		private Contex contex_;
 		public final Log LOG = LogFactory.getLog(ReaderThread.class);
 
-		public ReaderThread(HeapUpdateDoublesSketch ds) {
+		public ReaderThread(MWMRHeapUpdateDoublesSketch ds) {
 			super(ds, "READER");
+			contex_ = new Contex(ds);
 
 		}
 
@@ -280,7 +277,7 @@ public class TestPerformance {
 			// LOG.info( "I am a reader and my core is " + ThreadAffinity.currentCore());
 			// }
 
-			ds_.getQuantile(0.5);
+			contex_.getQuantile(0.5);
 			readOperationsNum_++;
 		}
 	}
@@ -299,7 +296,7 @@ public class TestPerformance {
 		long readOps_ = 0;
 		int i_ = 1;
 
-		public MixedThread(HeapUpdateDoublesSketch ds, int updateRetio) {
+		public MixedThread(MWMRHeapUpdateDoublesSketch ds, int updateRetio) {
 			super(ds, "MIXED");
 			updateRetio_ = updateRetio;
 		}

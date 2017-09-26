@@ -3,6 +3,8 @@ package com.yahoo.sketches.quantiles;
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import com.yahoo.sketches.SketchesArgumentException;
+
 
 public class Contex {
 
@@ -13,6 +15,8 @@ public class Contex {
 	private FlexDoublesArrayAccessor propogationBufferAccessor_;
 	private int k_;
 	private int levelsNum_;
+	
+	private HeapUpdateDoublesSketch auxiliaryReadSketch_;
 
 	public Contex(MWMRHeapUpdateDoublesSketch ds) {
 		ds_ = ds;
@@ -31,6 +35,20 @@ public class Contex {
 		}else {
 			localSketch_.update(dataItem);
 		}
+	}
+	
+	
+	public double getQuantile(final double fraction) {
+		
+		if ((fraction < 0.0) || (fraction > 1.0)) {
+			throw new SketchesArgumentException("Fraction cannot be less than zero or greater than 1.0");
+		}
+		
+		ds_.getSnapshot(auxiliaryReadSketch_);
+		
+		final DoublesAuxiliary aux = new DoublesAuxiliary(auxiliaryReadSketch_);
+		return aux.getQuantile(fraction);
+		
 	}
 
 	private void propogateToSharedSketch(double dataItem) {

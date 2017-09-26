@@ -164,7 +164,7 @@ public class ConcurrencyTestUtils {
 				num = 10000000;
 				break;
 			case READER:
-				num = 1000;
+				num = 10000;
 				break;
 			case MIXED:
 				num = 100000;
