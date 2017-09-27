@@ -23,7 +23,7 @@ public class Contex {
 		k_ = ds.getK();
 		levelsNum_ = ds.getLevelsNum_();
 		localSketch_ = HeapUpdateDoublesSketch.newInstance(k_);
-		localSketch_.putCombinedBuffer(new double[(2 * k_) + (levelsNum_ + 1) * k_]);
+//		localSketch_.putCombinedBuffer(new double[(2 * k_) + (levelsNum_ + 1) * k_]);
 		maxCount_ = (long) Math.pow(2, levelsNum_) * (2 * k_);
 		propogationBufferAccessor_ = FlexDoublesArrayAccessor.wrap(new double[k_], 0, k_);
 		auxiliaryReadSketch_ = HeapUpdateDoublesSketch.newInstance(k_);
@@ -32,7 +32,10 @@ public class Contex {
 	public void update(double dataItem) {
 		
 		if (localSketch_.getN() + 1 ==  maxCount_) {
-			propogateToSharedSketch(dataItem);
+			HeapUpdateDoublesSketch sketch = localSketch_;
+			localSketch_ = null;
+			propogateToSharedSketch(dataItem, sketch);
+			localSketch_ = sketch;
 		}else {
 			localSketch_.update(dataItem);
 		}
@@ -52,18 +55,18 @@ public class Contex {
 		
 	}
 
-	private void propogateToSharedSketch(double dataItem) {
+	private void propogateToSharedSketch(double dataItem, HeapUpdateDoublesSketch sketch) {
 
-		double[] buffer = localSketch_.getCombinedBuffer();
+		double[] buffer = sketch.getCombinedBuffer();
 
 		buffer[(2 * k_) - 1] = dataItem;
 
 		// sort the base buffer
 		Arrays.sort(buffer, 0, 2 * k_);
 
-		DoublesSketchAccessor bbAccessor = DoublesSketchAccessor.wrap(localSketch_, true);
+		DoublesSketchAccessor bbAccessor = DoublesSketchAccessor.wrap(sketch, true);
 
-		DoublesSketchAccessor tgtSketchBuf = DoublesSketchAccessor.wrap(localSketch_, true);
+		DoublesSketchAccessor tgtSketchBuf = DoublesSketchAccessor.wrap(sketch, true);
 		// final int endingLevel = Util.lowestZeroBitStartingAt(bitPattern,
 		// startingLevel);
 		tgtSketchBuf.setLevel(levelsNum_);
@@ -101,9 +104,9 @@ public class Contex {
 
 		// empty sketch
 
-		localSketch_.putBitPattern(0);
-		localSketch_.putN(0);
-		localSketch_.putBaseBufferCount(0);
+		sketch.putBitPattern(0);
+		sketch.putN(0);
+		sketch.putBaseBufferCount(0);
 
 	}
 
