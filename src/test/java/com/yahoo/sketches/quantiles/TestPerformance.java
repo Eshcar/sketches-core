@@ -17,7 +17,6 @@ import utils.ConcurrencyTestUtils.TestThread;
 
 import com.yahoo.sketches.quantiles.HeapUpdateDoublesSketch;
 import com.yahoo.sketches.quantiles.Contex;
-import com.yahoo.sketches.theta.Sketches;
 //import com.yahoo.sketches.quantiles.ConccurencyFramworkTest.SketchType;
 
 public class TestPerformance {
@@ -80,8 +79,8 @@ public class TestPerformance {
 			test.logger.info("writers = " + writers + ", levels = " + numberOfLevels);
 		}
 
-		test.setUp(numberOfLevels);
-		test.runTest(writers, 1, 0, time, updateRetio);
+		test.setUp();
+		test.runTest(writers, 0, 0, time, updateRetio);
 		test.prtintDebug(time);
 		test.clean();
 
@@ -101,9 +100,9 @@ public class TestPerformance {
 		ds_.clean();
 	}
 
-	public void setUp(int numberOfLevels) throws Exception {
+	public void setUp() throws Exception {
 
-		ds_ = MWMRHeapUpdateDoublesSketch.newInstance(k_, numberOfLevels);
+		ds_ = MWMRHeapUpdateDoublesSketch.newInstance(k_);
 		LOG.info("=============================================MWMR_BASIC===========================================");
 
 		
@@ -113,6 +112,8 @@ public class TestPerformance {
 		for (double i = 1; i < 10000000; i++) {
 			contex_.update(i);
 		}
+		
+		contex_.stopWritting();
 
 		LOG.info(contex_.getQuantile(0.5));
 

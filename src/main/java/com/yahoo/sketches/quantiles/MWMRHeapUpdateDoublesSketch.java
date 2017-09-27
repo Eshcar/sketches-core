@@ -3,6 +3,7 @@ package com.yahoo.sketches.quantiles;
 import static com.yahoo.sketches.quantiles.Util.computeBitPattern;
 
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import java.util.concurrent.ExecutorService;
@@ -16,23 +17,16 @@ import com.yahoo.sketches.SketchesArgumentException;
 
 public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 
-	private static class ThreadReadContext {
-		HeapUpdateDoublesSketch auxiliarySketch_;
-	}
 
-
-	enum ExecutionType {
-		PROPOGATOR, SORT_ZIP, MARGESORT_ZIP
-	}
 
 	/**
 	 * 
 	 */
 
-	private final ThreadLocal<ThreadReadContext> threadReadLocal_ = new ThreadLocal<ThreadReadContext>();
 	private AtomicLong atomicBitPattern_ = new AtomicLong();
-	private int levelsNum_;
-	private long maxCount_;
+	private AtomicInteger numberOfWriters_ = new AtomicInteger(0);
+//	private int levelsNum_ = 0;
+//	private long maxCount_;
 
 	private long debug_ = 0;
 
@@ -46,12 +40,10 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 	}
 	
 	
-	public int getLevelsNum_() {
-		return levelsNum_;
-	}
+	
 
 
-	static MWMRHeapUpdateDoublesSketch newInstance(final int k, int numberOfLevels) {
+	static MWMRHeapUpdateDoublesSketch newInstance(final int k) {
 
 		final MWMRHeapUpdateDoublesSketch hqs = new MWMRHeapUpdateDoublesSketch(k);
 		final int baseBufAlloc = 2 * k; // the min is important
@@ -63,8 +55,8 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 		hqs.putMinValue(Double.POSITIVE_INFINITY);
 		hqs.putMaxValue(Double.NEGATIVE_INFINITY);
 		
-		hqs.levelsNum_ = numberOfLevels;
-		hqs.maxCount_ = (int) Math.pow(2, numberOfLevels) * (2 * k); 
+//		hqs.levelsNum_ = numberOfLevels;
+//		hqs.maxCount_ = (int) Math.pow(2, numberOfLevels) * (2 * k);
 		hqs.executorService_ = Executors.newSingleThreadExecutor();
 
 		return hqs;
@@ -74,8 +66,21 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 		return debug_;
 	}
 	
-	public void prpogate(FlexDoublesArrayAccessor buffer, AtomicBoolean full_) {
-		BackgroundPropogation job = new BackgroundPropogation(buffer, full_);
+	public int getNumberOfWriters_() {
+		return numberOfWriters_.get();
+	}
+	
+	public int incrementAndGetNumberOfWriters_() {
+		return numberOfWriters_.incrementAndGet();
+	}
+	
+	public void decrementNumberOfWriters_() {
+		 numberOfWriters_.decrementAndGet();
+	}
+	
+	
+	public void prpogate(FlexDoublesArrayAccessor buffer, int level, AtomicBoolean full_) {
+		BackgroundPropogation job = new BackgroundPropogation(buffer, level, full_);
 		executorService_.execute(job);
 	}
 
@@ -206,14 +211,14 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 //	}
 
 
-	public void resetLocal() {
-
-
-		threadReadLocal_.set(null);
-//		threadWriteLocal_.set(null);
-
-		LOG.info("reset local");
-	}
+//	public void resetLocal() {
+//
+//
+//		threadReadLocal_.set(null);
+////		threadWriteLocal_.set(null);
+//
+//		LOG.info("reset local");
+//	}
 
 	private long setNFromBitPattern(long bits) {
 
@@ -309,18 +314,19 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 		
 		FlexDoublesArrayAccessor buffer_;
 		AtomicBoolean full_;
+		int levelsNum_;
 //		private final Log LOG = LogFactory.getLog(BackgroundPropogation.class);
 		
-		BackgroundPropogation(FlexDoublesArrayAccessor buffer, AtomicBoolean full){
+		BackgroundPropogation(FlexDoublesArrayAccessor buffer, int levelsNum,  AtomicBoolean full){
 			buffer_ = buffer;
 			full_ = full;
+			levelsNum_ = levelsNum;
 		}
 		
 		@Override
 		public void run() {
 			
 			propogate(buffer_, full_);
-//			LOG.info("working");
 		}
 		
 		
@@ -330,7 +336,7 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 			long bitPattern = getBitPattern();
 			int startingLevel = levelsNum_;
 
-			long newN = getN() + maxCount_;
+			long newN = getN() + (int) Math.pow(2, levelsNum_) * (2 * k_);
 
 			// make sure there will be enough space (levels) for the propagation
 			final int spaceNeeded = DoublesUpdateImpl.getRequiredItemCapacity(k_, newN);
@@ -352,8 +358,6 @@ public class MWMRHeapUpdateDoublesSketch extends HeapUpdateDoublesSketch {
 
 			} else {
 				DoublesSketchAccessor bbAccessor = DoublesSketchAccessor.wrap(MWMRHeapUpdateDoublesSketch.this, true);
-//				FlexDoublesArrayAccessor sharedBuffersAccessor = FlexDoublesArrayAccessor.wrap(SharedKBuffers_,
-//						locationToPropogate  * k_, k_);
 				DoublesSketchAccessor firstLevelBuf = tgtSketchBuf.copyAndSetLevel(startingLevel);
 				DoublesUpdateImpl.mergeTwoSizeKBuffers(firstLevelBuf, // target level: lvl
 						buffer, // target level: endingLevel

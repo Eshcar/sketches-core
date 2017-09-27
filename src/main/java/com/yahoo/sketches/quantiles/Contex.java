@@ -5,7 +5,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.yahoo.sketches.SketchesArgumentException;
 
-
 public class Contex {
 
 	private MWMRHeapUpdateDoublesSketch ds_;
@@ -14,42 +13,57 @@ public class Contex {
 	private AtomicBoolean full_ = new AtomicBoolean(false);
 	private FlexDoublesArrayAccessor propogationBufferAccessor_;
 	private int k_;
-	private int levelsNum_;
-	
+	private int levelsNum_ = 2;
+	private boolean writting_ = false;
+	private long numOp_ = 0;
+
 	private HeapUpdateDoublesSketch auxiliaryReadSketch_;
 
 	public Contex(MWMRHeapUpdateDoublesSketch ds) {
 		ds_ = ds;
 		k_ = ds.getK();
-		levelsNum_ = ds.getLevelsNum_();
+		// int numberOfWriters = ds.incrementAndGetNumberOfWriters_();
+		// setLevels(numberOfWriters);
+		// levelsNum_ = 0;
 		localSketch_ = HeapUpdateDoublesSketch.newInstance(k_);
 		localSketch_.putCombinedBuffer(new double[(2 * k_) + (levelsNum_ + 1) * k_]);
 		maxCount_ = (long) Math.pow(2, levelsNum_) * (2 * k_);
 		propogationBufferAccessor_ = FlexDoublesArrayAccessor.wrap(new double[k_], 0, k_);
 		auxiliaryReadSketch_ = HeapUpdateDoublesSketch.newInstance(k_);
 	}
+	
+	public void stopWritting() {
+		ds_.decrementNumberOfWriters_();
+		writting_ = false;
+	}
 
 	public void update(double dataItem) {
-		
-		if (localSketch_.getN() + 1 ==  maxCount_) {
+
+		if (localSketch_.getN() + 1 == maxCount_) {
 			propogateToSharedSketch(dataItem);
-		}else {
+		} else {
 			localSketch_.update(dataItem);
 		}
+
+		numOp_++;
+		if (numOp_ == (maxCount_ * 100)) {
+			numOp_ = 0;
+			setLevels();
+		}
+
 	}
-	
-	
+
 	public double getQuantile(final double fraction) {
-		
+
 		if ((fraction < 0.0) || (fraction > 1.0)) {
 			throw new SketchesArgumentException("Fraction cannot be less than zero or greater than 1.0");
 		}
-		
+
 		ds_.getSnapshot(auxiliaryReadSketch_);
-		
+
 		final DoublesAuxiliary aux = new DoublesAuxiliary(auxiliaryReadSketch_);
 		return aux.getQuantile(fraction);
-		
+
 	}
 
 	private void propogateToSharedSketch(double dataItem) {
@@ -85,25 +99,51 @@ public class Contex {
 			// wait until the location is free
 		}
 
-//		FlexDoublesArrayAccessor SharedbufferAccessor = FlexDoublesArrayAccessor.wrap(SharedKBuffers_, myLocation * k_,
-//				k_);
+		// FlexDoublesArrayAccessor SharedbufferAccessor =
+		// FlexDoublesArrayAccessor.wrap(SharedKBuffers_, myLocation * k_,
+		// k_);
 
 		DoublesUpdateImpl.zipSize2KBuffer(bbAccessor, propogationBufferAccessor_);
-//		DoublesUpdateImpl.zipSize2KBuffer(bbAccessor, SharedbufferAccessor);
+		// DoublesUpdateImpl.zipSize2KBuffer(bbAccessor, SharedbufferAccessor);
 
 		full_.set(true);
-		
-		
-		//TODO:
-		ds_.prpogate(propogationBufferAccessor_, full_);
-//		BackgroundPropogation job = new BackgroundPropogation(propogationBufferAccessor_, full_);
-//		executorService_.execute(job);
+
+		// TODO:
+		ds_.prpogate(propogationBufferAccessor_, levelsNum_, full_);
+		// BackgroundPropogation job = new
+		// BackgroundPropogation(propogationBufferAccessor_, full_);
+		// executorService_.execute(job);
 
 		// empty sketch
 
 		localSketch_.putBitPattern(0);
 		localSketch_.putN(0);
 		localSketch_.putBaseBufferCount(0);
+
+	}
+
+	private void setLevels() {
+
+		int numberOfWriters;
+
+		if (!writting_) {
+			numberOfWriters = ds_.incrementAndGetNumberOfWriters_();
+			writting_ = true;
+		} else {
+			numberOfWriters = ds_.getNumberOfWriters_();
+		}
+
+		if (numberOfWriters < 3) {
+			levelsNum_ = 0;
+		} else if (numberOfWriters < 5) {
+			levelsNum_ = 2;
+		} else if (numberOfWriters < 9) {
+			levelsNum_ = 3;
+		} else {
+			levelsNum_ = 4;
+		}
+
+		maxCount_ = (long) Math.pow(2, levelsNum_) * (2 * k_);
 
 	}
 
