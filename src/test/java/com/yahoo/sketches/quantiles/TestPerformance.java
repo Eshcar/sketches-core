@@ -81,7 +81,7 @@ public class TestPerformance {
 		}
 
 		test.setUp(numberOfLevels);
-		test.runTest(writers, 1, 0, time, updateRetio);
+		test.runTest(writers, 0, 0, time, updateRetio);
 		test.prtintDebug(time);
 		test.clean();
 

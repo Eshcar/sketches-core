@@ -23,7 +23,7 @@ public class Contex {
 		k_ = ds.getK();
 		levelsNum_ = ds.getLevelsNum_();
 		localSketch_ = HeapUpdateDoublesSketch.newInstance(k_);
-//		localSketch_.putCombinedBuffer(new double[(2 * k_) + (levelsNum_ + 1) * k_]);
+		localSketch_.putCombinedBuffer(new double[(2 * k_) + (levelsNum_ + 1) * k_]);
 		maxCount_ = (long) Math.pow(2, levelsNum_) * (2 * k_);
 		propogationBufferAccessor_ = FlexDoublesArrayAccessor.wrap(new double[k_], 0, k_);
 		auxiliaryReadSketch_ = HeapUpdateDoublesSketch.newInstance(k_);
