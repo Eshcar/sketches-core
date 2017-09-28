@@ -101,15 +101,24 @@ public class TestOriginalPartition {
 
 	private class OriginalWriterThread extends TestThread {
 		long operationsNum_ = 0;
-//		Random rand_ = new Random();
-//		int numberOfSketches_;
-		LockBasedHeapUpdateDoublesSketch sketch_;
+		Random rand_ = new Random();
+		int accessPathSize_;
+		int numberOfSketches_;
+//		LockBasedHeapUpdateDoublesSketch sketch_;
+		int[] accessPath_;
+		int index_ = 0;
 //		public final Log LOG = LogFactory.getLog(OriginalWriterThread.class);
 
 		public OriginalWriterThread(int num, LockBasedHeapUpdateDoublesSketch sketch) {
 			super(null, "WRITER");
-//			numberOfSketches_ = num;
-			sketch_ = sketch;
+			accessPathSize_ = num * 1000;
+//			sketch_ = sketch;
+			numberOfSketches_ = num;
+			accessPath_ = new int[accessPathSize_];
+			for (int i = 0; i < accessPathSize_; i++) {
+				accessPath_[i] = rand_.nextInt(numberOfSketches_);
+			}
+			
 		}
 
 		@Override
@@ -118,7 +127,11 @@ public class TestOriginalPartition {
 //			int i = rand_.nextInt(numberOfSketches_);
 			
 //			LOG.info("random number is " + i + ". mu id is " + Thread.currentThread().getId());
-			sketch_.update(operationsNum_);
+			sketches_[accessPath_[index_]].update(operationsNum_);
+			index_++;
+			if (index_ == accessPathSize_) {
+				index_ = 0;
+			}
 			operationsNum_++;
 		}
 
