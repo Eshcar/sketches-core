@@ -229,15 +229,15 @@ public class TestPerformance {
 	public class WriterThread extends TestThread {
 		long operationsNum_ = 0;
 		public final Log LOG = LogFactory.getLog(WriterThread.class);
-//		private Contex contex_;
+		private Contex contex_;
 
 		public WriterThread(MWMRHeapUpdateDoublesSketch ds) {
 			super(ds, "WRITER");
-//			contex_ = new Contex(ds);
+			contex_ = new Contex(ds);
 		}
 
 		@Override
-		public void doWork(Contex contex) throws Exception {
+		public void doWork() throws Exception {
 
 			// if (!getAffinity_()) {
 			// LOG.info( "I am a writer and my core is " + ThreadAffinity.currentCore());
@@ -247,7 +247,7 @@ public class TestPerformance {
 			// LOG.info( "I am a writer and my core is " + ThreadAffinity.currentCore());
 			// }
 
-			contex.update(operationsNum_);
+			contex_.update(operationsNum_);
 			operationsNum_++;
 		}
 
@@ -256,17 +256,17 @@ public class TestPerformance {
 	public static class ReaderThread extends TestThread {
 
 		long readOperationsNum_ = 0;
-//		private Contex contex_;
+		private Contex contex_;
 		public final Log LOG = LogFactory.getLog(ReaderThread.class);
 
 		public ReaderThread(MWMRHeapUpdateDoublesSketch ds) {
 			super(ds, "READER");
-//			contex_ = new Contex(ds);
+			contex_ = new Contex(ds);
 
 		}
 
 		@Override
-		public void doWork(Contex contex) throws Exception {
+		public void doWork() throws Exception {
 
 			// if (!getAffinity_()) {
 			// LOG.info( "I am a reader and my core is " + ThreadAffinity.currentCore());
@@ -276,7 +276,7 @@ public class TestPerformance {
 			// LOG.info( "I am a reader and my core is " + ThreadAffinity.currentCore());
 			// }
 
-			contex.getQuantile(0.5);
+			contex_.getQuantile(0.5);
 			readOperationsNum_++;
 		}
 	}
@@ -301,7 +301,7 @@ public class TestPerformance {
 		}
 
 		@Override
-		public void doWork(Contex contex) throws Exception {
+		public void doWork() throws Exception {
 
 			int res = rand_.nextInt(High_ - Low_ + 1) + Low_;
 

@@ -242,7 +242,7 @@ public class ConcurrencyTestUtils {
 
 		public void run() {
 			
-			Contex contex_ = new Contex(ds_);
+//			Contex contex_ = new Contex(ds_);
 			
 //			test.incrementAndGet();
 			int num = 1;
@@ -268,7 +268,7 @@ public class ConcurrencyTestUtils {
 				while (!stop_.get()) {  //TODO can impact performance!
 					
 					for (int i = 0; i < num; i++) {
-						doWork(contex_);
+						doWork();
 					}
 				}
 			} catch (Throwable t) {
@@ -291,7 +291,7 @@ public class ConcurrencyTestUtils {
 			start_.set(true);
 		}
 
-		public abstract void doWork(Contex contex) throws Exception;
+		public abstract void doWork() throws Exception;
 
 	}
 
