@@ -9,6 +9,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import com.yahoo.sketches.quantiles.Contex;
 import com.yahoo.sketches.quantiles.HeapUpdateDoublesSketch;
 import com.yahoo.sketches.quantiles.LockBasedHeapUpdateDoublesSketch;
 import com.yahoo.sketches.quantiles.MWMRHeapUpdateDoublesSketch;
@@ -129,7 +130,7 @@ public class ConcurrencyTestUtils {
 	 * A thread that can be added to a test context, and properly passes exceptions
 	 * through.
 	 */
-	public static abstract class TestThread extends Thread {
+	public static abstract class TestThreadOriginal extends TestThread {
 		// protected final TestContext ctx_;
 		private AtomicBoolean stop_ = new AtomicBoolean(false);
 		private AtomicBoolean start_ = new AtomicBoolean(false);
@@ -148,13 +149,15 @@ public class ConcurrencyTestUtils {
 		}
 
 		// public TestThread(TestContext ctx) {
-		public TestThread(HeapUpdateDoublesSketch ds, String type) {
+		public TestThreadOriginal(HeapUpdateDoublesSketch ds, String type) {
+			super(null, type);
 			ds_ = ds;
 			type_ = ThreadType.valueOf(type);
 //			this.ctx_ = ctx;
 		}
 
 		public void run() {
+			
 			
 //			test.incrementAndGet();
 			int num = 1;
@@ -204,6 +207,91 @@ public class ConcurrencyTestUtils {
 		}
 
 		public abstract void doWork() throws Exception;
+		public void doWork(Contex contex) {
+			
+		}
+
+	}
+	
+	
+	
+	public static abstract class TestThread extends Thread {
+		// protected final TestContext ctx_;
+		private AtomicBoolean stop_ = new AtomicBoolean(false);
+		private AtomicBoolean start_ = new AtomicBoolean(false);
+		private boolean affinity_ = false;
+		public MWMRHeapUpdateDoublesSketch ds_;
+		ThreadType type_;
+		
+//		private AtomicInteger test = new AtomicInteger(0);
+
+		public boolean getAffinity_() {
+			return affinity_;
+		}
+
+		public void setAffinity_(boolean setAffinity) {
+			affinity_ = setAffinity;
+		}
+
+		// public TestThread(TestContext ctx) {
+		public TestThread(MWMRHeapUpdateDoublesSketch ds, String type) {
+			ds_ = ds;
+			type_ = ThreadType.valueOf(type);
+//			this.ctx_ = ctx;
+		}
+
+		public void run() {
+			
+			Contex contex_ = new Contex(ds_);
+			
+//			test.incrementAndGet();
+			int num = 1;
+			
+			switch (type_) {
+			case WRITER:
+				num = 10000000;
+				break;
+			case READER:
+				num = 10000;
+				break;
+			case MIXED:
+				num = 100000;
+				break;
+			default:
+				assert (false);
+				break;
+			}
+
+			 while (!start_.get()) {}
+
+			try {
+				while (!stop_.get()) {  //TODO can impact performance!
+					
+					for (int i = 0; i < num; i++) {
+						doWork(contex_);
+					}
+				}
+			} catch (Throwable t) {
+				LOG.info("catched RuntimeException: " + t);
+//				throw new RuntimeException
+				
+//				ctx_.threadFailed(t);
+			}
+			
+			
+//			ds_.resetLocal();
+
+		}
+
+		public void stopThread() {
+			stop_.set(true);
+		}
+		
+		public void startThread() {
+			start_.set(true);
+		}
+
+		public abstract void doWork(Contex contex) throws Exception;
 
 	}
 

@@ -14,6 +14,7 @@ import com.google.common.collect.Lists;
 
 import utils.ConcurrencyTestUtils.TestContext;
 import utils.ConcurrencyTestUtils.TestThread;
+import utils.ConcurrencyTestUtils.TestThreadOriginal;
 
 public class TestOriginalPartition {
 
@@ -99,7 +100,7 @@ public class TestOriginalPartition {
 
 	}
 
-	private class OriginalWriterThread extends TestThread {
+	private class OriginalWriterThread extends TestThreadOriginal {
 		long operationsNum_ = 0;
 		Random rand_ = new Random();
 		int accessPathSize_;
