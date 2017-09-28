@@ -32,10 +32,10 @@ public class Contex {
 	public void update(double dataItem) {
 		
 		if (localSketch_.getN() + 1 ==  maxCount_) {
-			HeapUpdateDoublesSketch sketch = localSketch_;
-			localSketch_ = null;
+//			HeapUpdateDoublesSketch sketch = localSketch_;
+//			localSketch_ = null;
 			propogateToSharedSketch(dataItem, sketch);
-			localSketch_ = sketch;
+//			localSketch_ = sketch;
 		}else {
 			localSketch_.update(dataItem);
 		}
