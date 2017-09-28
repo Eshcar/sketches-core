@@ -34,7 +34,7 @@ public class Contex {
 		if (localSketch_.getN() + 1 ==  maxCount_) {
 //			HeapUpdateDoublesSketch sketch = localSketch_;
 //			localSketch_ = null;
-			propogateToSharedSketch(dataItem, sketch);
+			propogateToSharedSketch(dataItem);
 //			localSketch_ = sketch;
 		}else {
 			localSketch_.update(dataItem);
@@ -55,20 +55,18 @@ public class Contex {
 		
 	}
 
-	private void propogateToSharedSketch(double dataItem, HeapUpdateDoublesSketch sketch) {
+	private void propogateToSharedSketch(double dataItem) {
 
-		double[] buffer = sketch.getCombinedBuffer();
+		double[] buffer = localSketch_.getCombinedBuffer();
 
 		buffer[(2 * k_) - 1] = dataItem;
 
 		// sort the base buffer
 		Arrays.sort(buffer, 0, 2 * k_);
 
-		DoublesSketchAccessor bbAccessor = DoublesSketchAccessor.wrap(sketch, true);
+		DoublesSketchAccessor bbAccessor = DoublesSketchAccessor.wrap(localSketch_, true);
 
-		DoublesSketchAccessor tgtSketchBuf = DoublesSketchAccessor.wrap(sketch, true);
-		// final int endingLevel = Util.lowestZeroBitStartingAt(bitPattern,
-		// startingLevel);
+		DoublesSketchAccessor tgtSketchBuf = DoublesSketchAccessor.wrap(localSketch_, true);
 		tgtSketchBuf.setLevel(levelsNum_);
 
 		for (int lvl = 0; lvl < levelsNum_; lvl++) {
@@ -88,25 +86,17 @@ public class Contex {
 			// wait until the location is free
 		}
 
-//		FlexDoublesArrayAccessor SharedbufferAccessor = FlexDoublesArrayAccessor.wrap(SharedKBuffers_, myLocation * k_,
-//				k_);
-
 		DoublesUpdateImpl.zipSize2KBuffer(bbAccessor, propogationBufferAccessor_);
-//		DoublesUpdateImpl.zipSize2KBuffer(bbAccessor, SharedbufferAccessor);
-
 		full_.set(true);
 		
 		
 		//TODO:
 		ds_.prpogate(propogationBufferAccessor_, full_);
-//		BackgroundPropogation job = new BackgroundPropogation(propogationBufferAccessor_, full_);
-//		executorService_.execute(job);
+ 		// empty sketch
 
-		// empty sketch
-
-		sketch.putBitPattern(0);
-		sketch.putN(0);
-		sketch.putBaseBufferCount(0);
+		localSketch_.putBitPattern(0);
+		localSketch_.putN(0);
+		localSketch_.putBaseBufferCount(0);
 
 	}
 

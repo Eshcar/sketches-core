@@ -23,7 +23,7 @@ public class TestPerformance {
 
 	private MWMRHeapUpdateDoublesSketch ds_;
 	// private static final SketchType type_ = ;
-	private final int k_ = 32768;
+	private final int k_ = 4096;
 	public final Log LOG = LogFactory.getLog(TestPerformance.class);
 	public Logger logger = Logger.getLogger("MyLog");
 	public FileHandler fh;
