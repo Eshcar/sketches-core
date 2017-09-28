@@ -75,7 +75,7 @@ public class TestOriginalPartition {
 
 		List<OriginalWriterThread> writersList = Lists.newArrayList();
 		for (int i = 0; i < writersNum; i++) {
-			OriginalWriterThread writer = new OriginalWriterThread(writersNum);
+			OriginalWriterThread writer = new OriginalWriterThread(writersNum, sketches_[i]);
 			writersList.add(writer);
 			ctx.addThread(writer);
 		}
@@ -101,22 +101,24 @@ public class TestOriginalPartition {
 
 	private class OriginalWriterThread extends TestThread {
 		long operationsNum_ = 0;
-		Random rand_ = new Random();
-		int numberOfSketches_;
+//		Random rand_ = new Random();
+//		int numberOfSketches_;
+		LockBasedHeapUpdateDoublesSketch sketch_;
 //		public final Log LOG = LogFactory.getLog(OriginalWriterThread.class);
 
-		public OriginalWriterThread(int num) {
+		public OriginalWriterThread(int num, LockBasedHeapUpdateDoublesSketch sketch) {
 			super(null, "WRITER");
-			numberOfSketches_ = num;
+//			numberOfSketches_ = num;
+			sketch_ = sketch;
 		}
 
 		@Override
 		public void doWork() throws Exception {
 
-			int i = rand_.nextInt(numberOfSketches_);
+//			int i = rand_.nextInt(numberOfSketches_);
 			
 //			LOG.info("random number is " + i + ". mu id is " + Thread.currentThread().getId());
-			sketches_[i].update(i);
+			sketch_.update(operationsNum_);
 			operationsNum_++;
 		}
 
