@@ -79,7 +79,8 @@ public class TestMWMRPerformanceTheta {
 		usb.setFamily(Family.MWMR_QUICKSELECT);
 		gadget_ = (MWMRHeapQuickSelectSketch) usb.build();
 		LOG.info("=============================================MWMR_THETA===========================================");
-
+		
+		
 		ContexTheta ctx = new ContexTheta(gadget_);
 
 		for (long i = 0; i < 10000000; i++) {

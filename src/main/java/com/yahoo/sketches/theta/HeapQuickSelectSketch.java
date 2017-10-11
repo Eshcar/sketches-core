@@ -66,7 +66,7 @@ class HeapQuickSelectSketch extends HeapUpdateSketch {
 		preambleLongs_ = preambleLongs;
 		MY_FAMILY = family;
 	}
-
+	
 	/**
 	 * Get a new sketch instance on the java heap.
 	 *
@@ -287,9 +287,12 @@ class HeapQuickSelectSketch extends HeapUpdateSketch {
 
 	@Override
 	UpdateReturnState hashUpdate(final long hash) {
+		
+		
 		HashOperations.checkHashCorruption(hash);
 		empty_ = false;
 
+		
 		// The over-theta test
 		if (HashOperations.continueCondition(thetaLong_, hash)) {
 			return RejectedOverTheta; // signal that hash was rejected due to theta.
@@ -299,14 +302,18 @@ class HeapQuickSelectSketch extends HeapUpdateSketch {
 		if (HashOperations.hashSearchOrInsert(cache_, lgArrLongs_, hash) >= 0) {
 			return RejectedDuplicate; // Duplicate, not inserted
 		}
+		
+		
 		// insertion occurred, must increment curCount
 		curCount_++;
+		
 
 		if (curCount_ > hashTableThreshold_) { // we need to do something, we are out of space
 			// must rebuild or resize
 			if (lgArrLongs_ <= lgNomLongs_) { // resize
 				resizeCache();
 			} else { // Already at tgt size, must rebuild
+			
 				assert (lgArrLongs_ == lgNomLongs_ + 1) : "lgArr: " + lgArrLongs_ + ", lgNom: " + lgNomLongs_;
 				quickSelectAndRebuild(); // Changes thetaLong_, curCount_, reassigns cache
 			}
@@ -364,6 +371,39 @@ class HeapQuickSelectSketch extends HeapUpdateSketch {
 	static final int setHashTableThreshold(final int lgNomLongs, final int lgArrLongs) {
 		final double fraction = (lgArrLongs <= lgNomLongs) ? RESIZE_THRESHOLD : REBUILD_THRESHOLD;
 		return (int) Math.floor(fraction * (1 << lgArrLongs));
+	}
+	
+	
+
+	
+
+
+	public void setHashTableThreshold_(int hashTableThreshold_) {
+		this.hashTableThreshold_ = hashTableThreshold_;
+	}
+
+
+
+	public void setCurCount_(int curCount_) {
+		this.curCount_ = curCount_;
+	}
+
+
+
+	public void setThetaLong_(long thetaLong_) {
+		this.thetaLong_ = thetaLong_;
+	}
+
+	public void setEmpty_(boolean empty_) {
+		this.empty_ = empty_;
+	}
+
+	public void setCache_(long[] cache_) {
+		this.cache_ = cache_;
+	}
+
+	public void setLgArrLongs_(int lgArrLongs_) {
+		this.lgArrLongs_ = lgArrLongs_;
 	}
 
 }
