@@ -111,7 +111,13 @@ public enum Family {
   /**
    * The VarOpt family of sketches. (Not part of TSF.)
    */
-  VAROPT_UNION(14, "VAROPT_UNION", 1, 4);
+  VAROPT_UNION(14, "VAROPT_UNION", 1, 4),
+  
+  
+  /**
+   * Support Concurrency
+   */
+  MWMR_QUICKSELECT(2, "MWMR_QuickSelect", 3, 3);
 
 
   private static final Map<Integer, Family> lookupID = new HashMap<Integer, Family>();
