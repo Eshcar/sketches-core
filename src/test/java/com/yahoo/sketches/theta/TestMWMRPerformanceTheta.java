@@ -54,7 +54,7 @@ public class TestMWMRPerformanceTheta {
 		}
 
 		test.setUp();
-		test.runTest(writers, time);
+		test.runTest(writers, 1, time);
 		// test.prtintDebug(time);
 		// test.clean();
 
@@ -79,8 +79,7 @@ public class TestMWMRPerformanceTheta {
 		usb.setFamily(Family.MWMR_QUICKSELECT);
 		gadget_ = (MWMRHeapQuickSelectSketch) usb.build();
 		LOG.info("=============================================MWMR_THETA===========================================");
-		
-		
+
 		ContexTheta ctx = new ContexTheta(gadget_);
 
 		for (long i = 0; i < 10000000; i++) {
@@ -98,7 +97,7 @@ public class TestMWMRPerformanceTheta {
 
 	}
 
-	private void runTest(int writersNum, int secondsToRun) throws Exception {
+	private void runTest(int writersNum, int readersNum, int secondsToRun) throws Exception {
 
 		TestContext ctx = new TestContext();
 
@@ -111,13 +110,12 @@ public class TestMWMRPerformanceTheta {
 			ctx.addThread(writer);
 		}
 
-		// List<ReaderThread> readersList = Lists.newArrayList();
-		// for (int i = 0; i < readersNum; i++) {
-		// ReaderThread reader = new ReaderThread(gadget_);
-		// readersList.add(reader);
-		// ctx.addThread(reader);
-		// }
-		//
+		List<ReaderThread> readersList = Lists.newArrayList();
+		for (int i = 0; i < readersNum; i++) {
+			ReaderThread reader = new ReaderThread();
+			readersList.add(reader);
+			ctx.addThread(reader);
+		}
 
 		ctx.startThreads();
 		ctx.waitFor(secondsToRun * 1000);
@@ -131,12 +129,11 @@ public class TestMWMRPerformanceTheta {
 		}
 		logger.info("writeTput = " + ((totalWrites / secondsToRun)) / 1000000 + " millions per second");
 
-		// LOG.info("Read threads:");
-		// for (ReaderThread reader : readersList) {
-		// totalReads += reader.readOperationsNum_;
-		// }
-		// logger.info("readTput = " + ((totalReads / secondsToRun)) / 1000000.0 + "
-		// millions per second");
+		logger.info("Read threads:");
+		for (ReaderThread reader : readersList) {
+			totalReads += reader.readOperationsNum_;
+		}
+		logger.info("readTput = " + ((totalReads / secondsToRun)) / 1000000.0 + "millions per second");
 
 		LOG.info("Estimation = " + gadget_.getEstimate());
 
@@ -169,12 +166,12 @@ public class TestMWMRPerformanceTheta {
 	public class ReaderThread extends TestThread {
 
 		long readOperationsNum_ = 0;
-		 private ContexTheta contex_;
+		private ContexTheta contex_;
 		public final Log LOG = LogFactory.getLog(ReaderThread.class);
 
 		public ReaderThread() {
 			super(null, "READER");
-			 contex_ = new ContexTheta(gadget_);
+			contex_ = new ContexTheta(gadget_);
 
 		}
 
