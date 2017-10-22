@@ -129,7 +129,7 @@ public class TestMWMRPerformanceTheta {
 		}
 		logger.info("writeTput = " + ((totalWrites / secondsToRun)) / 1000000 + " millions per second");
 
-		logger.info("Read threads:");
+		LOG.info("Read threads:");
 		for (ReaderThread reader : readersList) {
 			totalReads += reader.readOperationsNum_;
 		}
