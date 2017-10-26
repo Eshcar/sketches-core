@@ -25,7 +25,7 @@ public final class Util {
   /**
    * The smallest Log2 nom entries allowed: 4.
    */
-  public static final int MIN_LG_NOM_LONGS = 4;
+  public static final int MIN_LG_NOM_LONGS = 1;
 
   /**
    * The largest Log2 nom entries allowed: 26.

@@ -17,7 +17,7 @@ public class ContextTheta extends AContex implements Theta {
 
 		shaerdSketch_ = sketch;
 		UpdateSketchBuilder usb = new UpdateSketchBuilder();
-		usb.setNominalEntries(16);
+		usb.setNominalEntries(2);
 		localSketch_ = (HeapQuickSelectSketch)usb.build();
 		localSketch_.setThetaLong(sketch.getVolatileTheta());
 
