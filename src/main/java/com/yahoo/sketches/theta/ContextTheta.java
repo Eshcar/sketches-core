@@ -5,7 +5,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-public class ContexTheta {
+public class ContextTheta extends AContex implements Theta {
 
 	private AtomicBoolean full_ = new AtomicBoolean(false);
 	private HeapQuickSelectSketch localSketch_;
@@ -13,7 +13,7 @@ public class ContexTheta {
 	
 	public final Log LOG = LogFactory.getLog(MWMRHeapQuickSelectSketch.class);
 
-	public ContexTheta(MWMRHeapQuickSelectSketch sketch) {
+	public ContextTheta(MWMRHeapQuickSelectSketch sketch) {
 
 		shaerdSketch_ = sketch;
 		UpdateSketchBuilder usb = new UpdateSketchBuilder();

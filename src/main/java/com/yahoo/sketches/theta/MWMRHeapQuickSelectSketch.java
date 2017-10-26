@@ -16,7 +16,7 @@ import com.yahoo.sketches.Util;
 
 public class MWMRHeapQuickSelectSketch extends HeapQuickSelectSketch {
 
-	private ExecutorService executorService_ = Executors.newSingleThreadExecutor();
+	static ExecutorService executorService_ = Executors.newSingleThreadExecutor();
 	private volatile double estimation_;
 	private volatile long theta_;
 	public final Log LOG = LogFactory.getLog(MWMRHeapQuickSelectSketch.class);

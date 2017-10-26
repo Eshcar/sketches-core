@@ -12,6 +12,7 @@ import org.apache.commons.logging.LogFactory;
 import com.yahoo.sketches.quantiles.HeapUpdateDoublesSketch;
 import com.yahoo.sketches.quantiles.LockBasedHeapUpdateDoublesSketch;
 import com.yahoo.sketches.quantiles.MWMRHeapUpdateDoublesSketch;
+import com.yahoo.sketches.theta.WorkerThread;
 //import com.yahoo.sketches.quantiles.SWSRHeapUpdateDoublesSketch;
 //import com.yahoo.sketches.quantiles.TestPerformance.SketchType;
 
@@ -129,7 +130,7 @@ public class ConcurrencyTestUtils {
 	 * A thread that can be added to a test context, and properly passes exceptions
 	 * through.
 	 */
-	public static abstract class TestThread extends Thread {
+	public static abstract class TestThread extends WorkerThread {
 		// protected final TestContext ctx_;
 		private AtomicBoolean stop_ = new AtomicBoolean(false);
 		private AtomicBoolean start_ = new AtomicBoolean(false);
@@ -149,6 +150,7 @@ public class ConcurrencyTestUtils {
 
 		// public TestThread(TestContext ctx) {
 		public TestThread(HeapUpdateDoublesSketch ds, String type) {
+			super();
 			ds_ = ds;
 			type_ = ThreadType.valueOf(type);
 //			this.ctx_ = ctx;

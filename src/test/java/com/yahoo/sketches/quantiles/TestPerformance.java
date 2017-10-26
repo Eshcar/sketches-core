@@ -17,7 +17,6 @@ import utils.ConcurrencyTestUtils.TestThread;
 
 import com.yahoo.sketches.quantiles.HeapUpdateDoublesSketch;
 import com.yahoo.sketches.quantiles.Contex;
-import com.yahoo.sketches.theta.Sketches;
 //import com.yahoo.sketches.quantiles.ConccurencyFramworkTest.SketchType;
 
 public class TestPerformance {

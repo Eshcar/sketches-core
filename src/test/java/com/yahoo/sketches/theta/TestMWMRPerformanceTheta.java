@@ -16,7 +16,7 @@ import utils.ConcurrencyTestUtils.TestContext;
 import utils.ConcurrencyTestUtils.TestThread;
 
 import com.yahoo.sketches.theta.UpdateSketchBuilder;
-import com.yahoo.sketches.theta.ContexTheta;
+import com.yahoo.sketches.theta.ContextTheta;
 
 public class TestMWMRPerformanceTheta {
 
@@ -80,7 +80,7 @@ public class TestMWMRPerformanceTheta {
 		gadget_ = (MWMRHeapQuickSelectSketch) usb.build();
 		LOG.info("=============================================MWMR_THETA===========================================");
 
-		ContexTheta ctx = new ContexTheta(gadget_);
+		ContextTheta ctx = new ContextTheta(gadget_);
 
 		for (long i = 0; i < 10000000; i++) {
 			ctx.update(i);
@@ -142,7 +142,7 @@ public class TestMWMRPerformanceTheta {
 	public class WriterThread extends TestThread {
 		long operationsNum_ = 0;
 		public final Log LOG = LogFactory.getLog(WriterThread.class);
-		private ContexTheta contex_;
+		private ContextTheta contex_;
 		int i_;
 		int jump_;
 
@@ -150,7 +150,7 @@ public class TestMWMRPerformanceTheta {
 			super(null, "WRITER");
 			i_ = id;
 			jump_ = jump;
-			contex_ = new ContexTheta(gadget_);
+			contex_ = new ContextTheta(gadget_);
 		}
 
 		@Override
@@ -166,12 +166,12 @@ public class TestMWMRPerformanceTheta {
 	public class ReaderThread extends TestThread {
 
 		long readOperationsNum_ = 0;
-		private ContexTheta contex_;
+		private ContextTheta contex_;
 		public final Log LOG = LogFactory.getLog(ReaderThread.class);
 
 		public ReaderThread() {
 			super(null, "READER");
-			contex_ = new ContexTheta(gadget_);
+			contex_ = new ContextTheta(gadget_);
 
 		}
 
