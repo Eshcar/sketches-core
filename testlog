@@ -1,0 +1,175 @@
+hi
+Oct 22, 2017 11:32:24 AM com.yahoo.sketches.theta.TestPerformnceTheta main
+INFO: writers = 1
+Oct 22, 2017 11:32:54 AM com.yahoo.sketches.theta.TestPerformnceTheta runTest
+INFO: writeTput = 4 millions per second
+Oct 22, 2017 11:32:54 AM com.yahoo.sketches.theta.TestPerformnceTheta runTest
+INFO: readTput = 0.242333 millions per second
+Oct 22, 2017 11:33:26 AM com.yahoo.sketches.theta.TestPerformnceTheta runTest
+INFO: writeTput = 5 millions per second
+Oct 22, 2017 11:33:26 AM com.yahoo.sketches.theta.TestPerformnceTheta runTest
+INFO: readTput = 0.279333 millions per second
+Oct 22, 2017 11:33:57 AM com.yahoo.sketches.theta.TestPerformnceTheta runTest
+INFO: writeTput = 5 millions per second
+Oct 22, 2017 11:33:57 AM com.yahoo.sketches.theta.TestPerformnceTheta runTest
+INFO: readTput = 0.204 millions per second
+Oct 22, 2017 11:33:57 AM com.yahoo.sketches.theta.TestPerformnceTheta main
+INFO: writers = 2
+Oct 22, 2017 11:34:29 AM com.yahoo.sketches.theta.TestPerformnceTheta runTest
+INFO: writeTput = 15 millions per second
+Oct 22, 2017 11:34:29 AM com.yahoo.sketches.theta.TestPerformnceTheta runTest
+INFO: readTput = 0.065333 millions per second
+Oct 22, 2017 11:35:05 AM com.yahoo.sketches.theta.TestPerformnceTheta runTest
+INFO: writeTput = 14 millions per second
+Oct 22, 2017 11:35:05 AM com.yahoo.sketches.theta.TestPerformnceTheta runTest
+INFO: readTput = 0.061666 millions per second
+Oct 22, 2017 11:35:36 AM com.yahoo.sketches.theta.TestPerformnceTheta runTest
+INFO: writeTput = 13 millions per second
+Oct 22, 2017 11:35:36 AM com.yahoo.sketches.theta.TestPerformnceTheta runTest
+INFO: readTput = 0.041666 millions per second
+Oct 22, 2017 11:35:36 AM com.yahoo.sketches.theta.TestPerformnceTheta main
+INFO: writers = 4
+Oct 22, 2017 11:36:09 AM com.yahoo.sketches.theta.TestPerformnceTheta runTest
+INFO: writeTput = 14 millions per second
+Oct 22, 2017 11:36:09 AM com.yahoo.sketches.theta.TestPerformnceTheta runTest
+INFO: readTput = 0.025666 millions per second
+Oct 22, 2017 11:36:43 AM com.yahoo.sketches.theta.TestPerformnceTheta runTest
+INFO: writeTput = 15 millions per second
+Oct 22, 2017 11:36:43 AM com.yahoo.sketches.theta.TestPerformnceTheta runTest
+INFO: readTput = 0.043333 millions per second
+Oct 22, 2017 11:37:18 AM com.yahoo.sketches.theta.TestPerformnceTheta runTest
+INFO: writeTput = 15 millions per second
+Oct 22, 2017 11:37:18 AM com.yahoo.sketches.theta.TestPerformnceTheta runTest
+INFO: readTput = 0.043 millions per second
+Oct 22, 2017 11:37:18 AM com.yahoo.sketches.theta.TestPerformnceTheta main
+INFO: writers = 8
+Oct 22, 2017 11:37:56 AM com.yahoo.sketches.theta.TestPerformnceTheta runTest
+INFO: writeTput = 8 millions per second
+Oct 22, 2017 11:37:56 AM com.yahoo.sketches.theta.TestPerformnceTheta runTest
+INFO: readTput = 0.005 millions per second
+Oct 22, 2017 11:38:32 AM com.yahoo.sketches.theta.TestPerformnceTheta runTest
+INFO: writeTput = 10 millions per second
+Oct 22, 2017 11:38:32 AM com.yahoo.sketches.theta.TestPerformnceTheta runTest
+INFO: readTput = 0.006333 millions per second
+Oct 22, 2017 11:39:07 AM com.yahoo.sketches.theta.TestPerformnceTheta runTest
+INFO: writeTput = 10 millions per second
+Oct 22, 2017 11:39:07 AM com.yahoo.sketches.theta.TestPerformnceTheta runTest
+INFO: readTput = 0.008666 millions per second
+Oct 22, 2017 11:39:07 AM com.yahoo.sketches.theta.TestPerformnceTheta main
+INFO: writers = 12
+Oct 22, 2017 11:39:46 AM com.yahoo.sketches.theta.TestPerformnceTheta runTest
+INFO: writeTput = 10 millions per second
+Oct 22, 2017 11:39:46 AM com.yahoo.sketches.theta.TestPerformnceTheta runTest
+INFO: readTput = 0.004333 millions per second
+Oct 22, 2017 11:40:25 AM com.yahoo.sketches.theta.TestPerformnceTheta runTest
+INFO: writeTput = 10 millions per second
+Oct 22, 2017 11:40:25 AM com.yahoo.sketches.theta.TestPerformnceTheta runTest
+INFO: readTput = 0.003666 millions per second
+Oct 22, 2017 11:41:00 AM com.yahoo.sketches.theta.TestPerformnceTheta runTest
+INFO: writeTput = 10 millions per second
+Oct 22, 2017 11:41:00 AM com.yahoo.sketches.theta.TestPerformnceTheta runTest
+INFO: readTput = 0.003 millions per second
+Oct 22, 2017 11:41:00 AM com.yahoo.sketches.theta.TestPerformnceTheta main
+INFO: writers = 16
+Oct 22, 2017 11:41:40 AM com.yahoo.sketches.theta.TestPerformnceTheta runTest
+INFO: writeTput = 14 millions per second
+Oct 22, 2017 11:41:40 AM com.yahoo.sketches.theta.TestPerformnceTheta runTest
+INFO: readTput = 0.001333 millions per second
+Oct 22, 2017 11:42:21 AM com.yahoo.sketches.theta.TestPerformnceTheta runTest
+INFO: writeTput = 15 millions per second
+Oct 22, 2017 11:42:21 AM com.yahoo.sketches.theta.TestPerformnceTheta runTest
+INFO: readTput = 0.001 millions per second
+Oct 22, 2017 11:43:01 AM com.yahoo.sketches.theta.TestPerformnceTheta runTest
+INFO: writeTput = 14 millions per second
+Oct 22, 2017 11:43:01 AM com.yahoo.sketches.theta.TestPerformnceTheta runTest
+INFO: readTput = 0.001333 millions per second
+Oct 22, 2017 11:43:01 AM com.yahoo.sketches.theta.TestPerformnceTheta main
+INFO: writers = 20
+Oct 22, 2017 11:43:43 AM com.yahoo.sketches.theta.TestPerformnceTheta runTest
+INFO: writeTput = 16 millions per second
+Oct 22, 2017 11:43:43 AM com.yahoo.sketches.theta.TestPerformnceTheta runTest
+INFO: readTput = 0.001 millions per second
+Oct 22, 2017 11:44:22 AM com.yahoo.sketches.theta.TestPerformnceTheta runTest
+INFO: writeTput = 13 millions per second
+Oct 22, 2017 11:44:23 AM com.yahoo.sketches.theta.TestPerformnceTheta runTest
+INFO: readTput = 0.001 millions per second
+Oct 22, 2017 11:45:04 AM com.yahoo.sketches.theta.TestPerformnceTheta runTest
+INFO: writeTput = 13 millions per second
+Oct 22, 2017 11:45:04 AM com.yahoo.sketches.theta.TestPerformnceTheta runTest
+INFO: readTput = 0.001 millions per second
+Oct 22, 2017 11:45:04 AM com.yahoo.sketches.theta.TestPerformnceTheta main
+INFO: writers = 24
+Oct 22, 2017 11:45:51 AM com.yahoo.sketches.theta.TestPerformnceTheta runTest
+INFO: writeTput = 15 millions per second
+Oct 22, 2017 11:45:51 AM com.yahoo.sketches.theta.TestPerformnceTheta runTest
+INFO: readTput = 0.002 millions per second
+Oct 22, 2017 11:46:34 AM com.yahoo.sketches.theta.TestPerformnceTheta runTest
+INFO: writeTput = 16 millions per second
+Oct 22, 2017 11:46:34 AM com.yahoo.sketches.theta.TestPerformnceTheta runTest
+INFO: readTput = 0.001 millions per second
+Oct 22, 2017 11:47:21 AM com.yahoo.sketches.theta.TestPerformnceTheta runTest
+INFO: writeTput = 16 millions per second
+Oct 22, 2017 11:47:21 AM com.yahoo.sketches.theta.TestPerformnceTheta runTest
+INFO: readTput = 6.66E-4 millions per second
+Oct 22, 2017 11:47:22 AM com.yahoo.sketches.theta.TestPerformnceTheta main
+INFO: writers = 28
+Oct 22, 2017 11:48:10 AM com.yahoo.sketches.theta.TestPerformnceTheta runTest
+INFO: writeTput = 18 millions per second
+Oct 22, 2017 11:48:10 AM com.yahoo.sketches.theta.TestPerformnceTheta runTest
+INFO: readTput = 6.66E-4 millions per second
+Oct 22, 2017 11:49:00 AM com.yahoo.sketches.theta.TestPerformnceTheta runTest
+INFO: writeTput = 18 millions per second
+Oct 22, 2017 11:49:00 AM com.yahoo.sketches.theta.TestPerformnceTheta runTest
+INFO: readTput = 6.66E-4 millions per second
+Oct 22, 2017 11:49:52 AM com.yahoo.sketches.theta.TestPerformnceTheta runTest
+INFO: writeTput = 17 millions per second
+Oct 22, 2017 11:49:52 AM com.yahoo.sketches.theta.TestPerformnceTheta runTest
+INFO: readTput = 6.66E-4 millions per second
+Oct 26, 2017 1:54:21 PM com.yahoo.sketches.theta.TestManyConccurentSketchesPerformance main
+INFO: writers = 1
+Oct 26, 2017 1:54:26 PM com.yahoo.sketches.theta.TestManyConccurentSketchesPerformance runTest
+INFO: writeTput = 28 millions per second
+Oct 26, 2017 1:54:38 PM com.yahoo.sketches.theta.TestManyConccurentSketchesPerformance main
+INFO: writers = 1
+Oct 26, 2017 1:54:44 PM com.yahoo.sketches.theta.TestManyConccurentSketchesPerformance runTest
+INFO: writeTput = 32 millions per second
+Oct 26, 2017 1:54:51 PM com.yahoo.sketches.theta.TestManyConccurentSketchesPerformance main
+INFO: writers = 1
+Oct 26, 2017 1:54:58 PM com.yahoo.sketches.theta.TestManyConccurentSketchesPerformance runTest
+INFO: writeTput = 6 millions per second
+Oct 26, 2017 1:55:08 PM com.yahoo.sketches.theta.TestManyConccurentSketchesPerformance main
+INFO: writers = 28
+Oct 26, 2017 1:55:42 PM com.yahoo.sketches.theta.TestManyConccurentSketchesPerformance runTest
+INFO: writeTput = 56 millions per second
+Oct 26, 2017 1:55:58 PM com.yahoo.sketches.theta.TestManyConccurentSketchesPerformance main
+INFO: writers = 12
+Oct 26, 2017 1:56:16 PM com.yahoo.sketches.theta.TestManyConccurentSketchesPerformance runTest
+INFO: writeTput = 24 millions per second
+Oct 26, 2017 1:56:47 PM com.yahoo.sketches.theta.TestManyConccurentSketchesPerformance main
+INFO: writers = 20
+Oct 26, 2017 1:57:11 PM com.yahoo.sketches.theta.TestManyConccurentSketchesPerformance runTest
+INFO: writeTput = 40 millions per second
+Oct 26, 2017 1:57:34 PM com.yahoo.sketches.theta.TestManyConccurentSketchesPerformance main
+INFO: writers = 2
+Oct 26, 2017 1:57:40 PM com.yahoo.sketches.theta.TestManyConccurentSketchesPerformance runTest
+INFO: writeTput = 8 millions per second
+Oct 26, 2017 1:58:19 PM com.yahoo.sketches.theta.TestManyConccurentSketchesPerformance main
+INFO: writers = 20
+Oct 26, 2017 2:24:03 PM com.yahoo.sketches.theta.TestManyConccurentSketchesPerformance main
+INFO: writers = 20
+Oct 26, 2017 2:24:59 PM com.yahoo.sketches.theta.TestManyConccurentSketchesPerformance runTest
+INFO: writeTput = 40 millions per second
+Oct 26, 2017 2:32:26 PM com.yahoo.sketches.theta.TestManyLockBasedTheta main
+INFO: writers = 20
+Oct 26, 2017 2:33:19 PM com.yahoo.sketches.theta.TestManyLockBasedTheta runTest
+INFO: writeTput = 40 millions per second
+Oct 26, 2017 2:33:42 PM com.yahoo.sketches.theta.TestManyConccurentSketchesPerformance main
+INFO: writers = 20
+Oct 26, 2017 2:34:42 PM com.yahoo.sketches.theta.TestManyConccurentSketchesPerformance runTest
+INFO: writeTput = 40 millions per second
+Oct 26, 2017 2:50:56 PM com.yahoo.sketches.theta.TestManyConccurentSketchesPerformance main
+INFO: writers = 20
+Oct 26, 2017 2:51:52 PM com.yahoo.sketches.theta.TestManyConccurentSketchesPerformance runTest
+INFO: writeTput = 40 millions per second
+Oct 26, 2017 2:52:35 PM com.yahoo.sketches.theta.TestManyConccurentSketchesPerformance main
+INFO: writers = 20
