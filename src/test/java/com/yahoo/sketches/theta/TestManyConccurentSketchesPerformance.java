@@ -11,8 +11,6 @@ import org.apache.commons.logging.LogFactory;
 
 import com.google.common.collect.Lists;
 import com.yahoo.sketches.Family;
-import com.yahoo.sketches.theta.TestMWMRPerformanceTheta.ReaderThread;
-import com.yahoo.sketches.theta.TestMWMRPerformanceTheta.WriterThread;
 
 import utils.ConcurrencyTestUtils.TestContext;
 import utils.ConcurrencyTestUtils.TestThread;
@@ -97,6 +95,7 @@ public class TestManyConccurentSketchesPerformance {
 			}
 			
 			WorkerWriterThread writer = new WorkerWriterThread(i, writersNum, sketchesAccesPatern, numOfPreparedAccesses);
+//			WorkerWriterThread writer = new WorkerWriterThread(i, writersNum, sketchesNum);
 			writersList.add(writer);
 			ctx.addThread(writer);
 		}
@@ -142,17 +141,20 @@ public class TestManyConccurentSketchesPerformance {
 		int[] accessPattarn_;
 		int acessPattaenNum_;
 		int numOfPreparedAccesses_;
+//		ScrambledZipfianGenerator gen_;
 		
 
 		int i_;
 		int jump_;
 
-		public WorkerWriterThread(int id, int jump, int[] sketchesAccesPatern, int numOfPreparedAccesses) {
+//		public WorkerWriterThread(int id, int jump, int sketches ) {
+		public WorkerWriterThread(int id, int jump, int[] sketchesAccesPatern, int  numOfPreparedAccesses) {
 			super(null, "WRITER");
 			i_ = id;
 			jump_ = jump;
 			accessPattarn_ = sketchesAccesPatern;
 			numOfPreparedAccesses_ = numOfPreparedAccesses;
+//			gen_  = new ScrambledZipfianGenerator(sketches);
 			
 		}
 
@@ -162,10 +164,14 @@ public class TestManyConccurentSketchesPerformance {
 			
 			MWMRHeapQuickSelectSketch sk = skArray_[accessPattarn_[index_]];
 			
+//			MWMRHeapQuickSelectSketch sk = skArray_[accessPattarn_[0]];
+			
 			index_++;
 			if (index_ == numOfPreparedAccesses_) {
 				index_ = 0;
 			}
+			
+//			MWMRHeapQuickSelectSketch sk = skArray_[gen_.nextInt()];
 			
 			
 			WorkerWriterThread thd = (WorkerWriterThread) Thread.currentThread();
